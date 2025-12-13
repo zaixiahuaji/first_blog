@@ -39,7 +39,7 @@ onMounted(() => {
         <HeroBanner />
 
         <!-- Loading State -->
-        <div v-if="loading" class="flex justify-center items-center py-20">
+        <div v-if="loading && postsStore.page === 1" class="flex justify-center items-center py-20">
           <div class="font-vt323 text-2xl text-[#2d2d30] animate-pulse">正在从数据库加载记忆扇区...</div>
         </div>
 
@@ -52,12 +52,16 @@ onMounted(() => {
 
         <BlogGrid v-else />
 
-        <div class="flex justify-center">
+        <div class="flex justify-center pb-12" v-if="!loading && !error && postsStore.hasMore">
           <button
+            @click="postsStore.loadMore()"
             class="bg-white border-2 border-[#00a3cc] text-[#00a3cc] px-8 py-3 uppercase tracking-widest hover:bg-[#00a3cc] hover:text-white transition-all duration-300 shadow-[4px_4px_0px_rgba(0,163,204,0.3)] hover:shadow-[6px_6px_0px_rgba(0,163,204,0.5)] bevel-box font-bold"
           >
             加载_下一扇区
           </button>
+        </div>
+        <div class="flex justify-center pb-12 font-vt323 text-gray-400" v-if="!loading && !error && !postsStore.hasMore && postsStore.posts.length > 0">
+           -- 档案检索完毕 --
         </div>
       </main>
     </div>
