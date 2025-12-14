@@ -6,7 +6,8 @@
  * OpenAPI spec version: 1.0
  */
 import type {
-  LoginDto
+  LoginDto,
+  RegisterDto
 } from '.././model';
 
 import { customInstance } from '../../axios-instance';
@@ -17,7 +18,7 @@ type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
   export const getAuth = () => {
 /**
- * @summary 登录，返回 access_token
+ * @summary 登录（邮箱或用户名），返回 access_token
  */
 const authControllerLogin = (
     loginDto: LoginDto,
@@ -29,5 +30,19 @@ const authControllerLogin = (
     },
       options);
     }
-  return {authControllerLogin}};
+  /**
+ * @summary 注册账号（用户名+邮箱+密码，角色 user）
+ */
+const authControllerRegister = (
+    registerDto: RegisterDto,
+ options?: SecondParameter<typeof customInstance<void>>,) => {
+      return customInstance<void>(
+      {url: `/api/auth/register`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: registerDto
+    },
+      options);
+    }
+  return {authControllerLogin,authControllerRegister}};
 export type AuthControllerLoginResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAuth>['authControllerLogin']>>>
+export type AuthControllerRegisterResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getAuth>['authControllerRegister']>>>

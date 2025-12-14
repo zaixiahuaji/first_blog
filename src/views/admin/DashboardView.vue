@@ -65,14 +65,27 @@ const fetchPosts = async () => {
           ? rawData.data
           : []
 
-    posts.value = items.map((item: any) => ({
+    // Map to PostItem
+    let mappedPosts = items.map((item: any) => ({
       id: item.id ?? item._id,
       title: item.title,
       category: item.category,
       date: item.date ?? item.createdAt ?? item.created_at,
       excerpt: item.excerpt ?? item.description,
       content: item.content ?? item.body,
+      author: item.author, // Assuming 'author' field exists
+      username: item.username // Or 'username'
     }))
+
+    // Client-side RBAC Filtering (Fallback)
+    if (authStore.user?.role === 'user' && authStore.user?.username) {
+      const currentUsername = authStore.user.username
+      mappedPosts = mappedPosts.filter((p: any) => 
+        (p.author === currentUsername) || (p.username === currentUsername)
+      )
+    }
+
+    posts.value = mappedPosts
   } catch (e) {
     console.error('Failed to fetch posts', e)
   } finally {
@@ -102,21 +115,26 @@ const formatDate = (dateString: string) => {
 }
 
 onMounted(() => {
+  if (!authStore.user) {
+    authStore.initialize()
+  }
   fetchPosts()
 })
 </script>
 
 <template>
-  <div class="min-h-screen bg-[#0a0a0a] text-[#00ff00] font-sharetech flex flex-col">
+  <div class="h-screen bg-[#0a0a0a] text-[#00ff00] font-sharetech flex flex-col overflow-hidden">
     <!-- CRT Overlay -->
     <div class="fixed inset-0 crt-overlay z-50 pointer-events-none"></div>
     <div class="fixed inset-0 scan-line z-40 pointer-events-none"></div>
 
     <!-- Top Bar -->
-    <header class="border-b border-[#00ff00] p-4 flex justify-between items-center z-10 bg-[#0a0a0a]">
+    <header class="border-b border-[#00ff00] p-4 flex justify-between items-center z-10 bg-[#0a0a0a] shrink-0">
       <div class="flex items-center gap-4">
         <h1 class="text-2xl font-bold uppercase tracking-widest">控制面板</h1>
-        <span class="text-xs border border-[#00ff00] px-2 py-0.5">ADMIN</span>
+        <span class="text-xs border border-[#00ff00] px-2 py-0.5">
+          {{ authStore.user?.role?.toUpperCase() || 'UNKNOWN' }}
+        </span>
       </div>
       <div class="flex gap-4">
         <button @click="openCreateEditor" class="hover:underline">[ 新建文章 ]</button>
@@ -134,7 +152,7 @@ onMounted(() => {
     />
 
     <!-- Main Content -->
-    <main class="flex-1 p-8 overflow-auto z-10 relative">
+    <main class="flex-1 p-8 overflow-y-auto z-10 relative min-h-0">
       <div v-if="loading" class="text-center py-20 text-xl animate-pulse">
         >> 正在检索数据...
       </div>
@@ -185,7 +203,7 @@ onMounted(() => {
     </main>
 
     <!-- Status Bar -->
-    <footer class="border-t border-[#00ff00] p-2 text-xs flex justify-between opacity-60 z-10 bg-[#0a0a0a]">
+    <footer class="border-t border-[#00ff00] p-2 text-xs flex justify-between opacity-60 z-10 bg-[#0a0a0a] shrink-0">
       <span>系统状态: 在线</span>
       <span>记录数: {{ posts.length }}</span>
     </footer>

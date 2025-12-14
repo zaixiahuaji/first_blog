@@ -8,6 +8,11 @@
 
 export interface LoginDto {
   /** @maxLength 255 */
-  email: string;
-  password: string;
+  email?: string;
+  /**
+   * 用户名或邮箱至少填一个
+   * @maxLength 12
+   */
+  username?: string;
+  password?: string;
 }

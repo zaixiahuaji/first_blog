@@ -11,6 +11,7 @@ export interface PostItem {
   date: string
   excerpt: string
   content: string
+  username?: string // Author username
 }
 
 export const categoryLabelMap: Record<PostCategory, string> = {
@@ -119,6 +120,7 @@ export const usePostsStore = defineStore('posts', {
           date: item.date ?? item.createdAt ?? item.created_at ?? new Date().toISOString(),
           excerpt: item.excerpt ?? item.description ?? '暂无摘要',
           content: item.content ?? item.body ?? '',
+          username: item.username ?? item.author ?? 'Unknown',
         }))
 
         if (isLoadMore) {

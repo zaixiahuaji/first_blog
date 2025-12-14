@@ -13,5 +13,6 @@ export * from './postsControllerFindAllCategory';
 export * from './postsControllerFindAllOrder';
 export * from './postsControllerFindAllParams';
 export * from './postsControllerFindAllSort';
+export * from './registerDto';
 export * from './updatePostDto';
 export * from './updatePostDtoCategory';
