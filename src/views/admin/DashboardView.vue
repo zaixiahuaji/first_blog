@@ -163,6 +163,7 @@ onMounted(() => {
             <tr class="border-b border-[#00ff00] bg-[#00ff00]/10">
               <th class="p-4 font-bold uppercase w-20">ID</th>
               <th class="p-4 font-bold uppercase">标题</th>
+              <th class="p-4 font-bold uppercase w-32">作者</th>
               <th class="p-4 font-bold uppercase w-32">分类</th>
               <th class="p-4 font-bold uppercase w-40">日期</th>
               <th class="p-4 font-bold uppercase w-48 text-right">操作</th>
@@ -178,6 +179,7 @@ onMounted(() => {
                 #{{ post.id.toString().slice(0, 8) }}...
               </td>
               <td class="p-4 font-bold truncate max-w-xs">{{ post.title }}</td>
+              <td class="p-4 font-vt323 text-lg">{{ post.username || post.author || 'UNKNOWN' }}</td>
               <td class="p-4 uppercase text-xs">
                 <span class="border border-[#00ff00] px-1">{{ post.category }}</span>
               </td>

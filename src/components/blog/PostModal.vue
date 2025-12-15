@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted } from 'vue'
 import { storeToRefs } from 'pinia'
+import { marked } from 'marked'
 import { usePostsStore, categoryAccentMap, categoryLabelMap } from '@/stores/posts'
 
 const postsStore = usePostsStore()
@@ -33,6 +34,11 @@ const accentShadow = computed(() => `6px 6px 0px ${accentColor.value}`)
 const categoryLabel = computed(() =>
   activePost.value ? categoryLabelMap[activePost.value.category] : '',
 )
+
+const parsedContent = computed(() => {
+  if (!activePost.value?.content) return ''
+  return marked.parse(activePost.value.content)
+})
 </script>
 
 <template>
@@ -78,10 +84,10 @@ const categoryLabel = computed(() =>
             <span class="w-full h-[1px] bg-gray-300 block flex-1"></span>
           </div>
 
-          <div class="prose prose-slate max-w-none font-sharetech text-lg leading-relaxed text-[#444]">
-            <p v-for="(paragraph, index) in activePost.content.split('\n')" :key="index" class="mb-4">
-              {{ paragraph }}
-            </p>
+          <div 
+            class="prose prose-slate max-w-none font-sharetech text-lg leading-relaxed text-[#444] markdown-content"
+            v-html="parsedContent"
+          >
           </div>
         </div>
 
@@ -111,5 +117,75 @@ const categoryLabel = computed(() =>
 .modal-fade-leave-to {
   opacity: 0;
   transform: scale(0.98);
+}
+
+/* Markdown Styles */
+:deep(.markdown-content h1),
+:deep(.markdown-content h2),
+:deep(.markdown-content h3) {
+  color: #2d2d30;
+  font-weight: bold;
+  text-transform: uppercase;
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+  line-height: 1.2;
+}
+
+:deep(.markdown-content h1) { font-size: 1.5em; border-bottom: 2px solid #e5e5e5; padding-bottom: 0.3em; }
+:deep(.markdown-content h2) { font-size: 1.25em; }
+:deep(.markdown-content h3) { font-size: 1.1em; }
+
+:deep(.markdown-content p) {
+  margin-bottom: 1em;
+}
+
+:deep(.markdown-content ul),
+:deep(.markdown-content ol) {
+  margin-left: 1.5em;
+  margin-bottom: 1em;
+}
+
+:deep(.markdown-content ul) { list-style-type: square; }
+:deep(.markdown-content ol) { list-style-type: decimal; }
+
+:deep(.markdown-content blockquote) {
+  border-left: 4px solid var(--accent);
+  padding-left: 1em;
+  margin-left: 0;
+  font-style: italic;
+  color: #666;
+  background: #f4f4f6;
+  padding: 0.5em 1em;
+}
+
+:deep(.markdown-content code) {
+  font-family: 'Share Tech Mono', monospace;
+  background-color: #f4f4f6;
+  padding: 0.2em 0.4em;
+  border-radius: 2px;
+  font-size: 0.9em;
+  color: #e62e2e;
+}
+
+:deep(.markdown-content pre) {
+  background-color: #2d2d30;
+  color: #f4f4f6;
+  padding: 1em;
+  overflow-x: auto;
+  margin-bottom: 1em;
+  border-radius: 4px;
+}
+
+:deep(.markdown-content pre code) {
+  background-color: transparent;
+  color: inherit;
+  padding: 0;
+  font-size: 0.9em;
+}
+
+:deep(.markdown-content a) {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 </style>

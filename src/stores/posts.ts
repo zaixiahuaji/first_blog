@@ -12,6 +12,7 @@ export interface PostItem {
   excerpt: string
   content: string
   username?: string // Author username
+  author?: string // Fallback or alternative author field
 }
 
 export const categoryLabelMap: Record<PostCategory, string> = {
