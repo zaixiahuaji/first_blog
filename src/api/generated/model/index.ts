@@ -6,13 +6,25 @@
  * OpenAPI spec version: 1.0
  */
 
+export * from './createCategoryDto';
+export * from './createCategoryDtoColor';
 export * from './createPostDto';
 export * from './createPostDtoCategory';
 export * from './loginDto';
+export * from './paginatedPostsDto';
+export * from './postDto';
+export * from './postsCategoriesStatsDto';
+export * from './postsCategoryCountDto';
+export * from './postsCategoryStatsItemDto';
 export * from './postsControllerFindAllCategory';
 export * from './postsControllerFindAllOrder';
 export * from './postsControllerFindAllParams';
 export * from './postsControllerFindAllSort';
+export * from './postsTotalDto';
 export * from './registerDto';
+export * from './reorderCategoriesDto';
+export * from './updateCategoryDto';
+export * from './updateCategoryDtoColor';
+export * from './updateCategoryDtoDescription';
 export * from './updatePostDto';
 export * from './updatePostDtoCategory';
