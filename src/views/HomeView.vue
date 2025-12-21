@@ -2,6 +2,7 @@
 import { onMounted, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { usePostsStore } from '@/stores/posts'
+import { useCategoriesStore } from '@/stores/categories'
 import { useUiStore } from '@/stores/ui'
 import CrtEffects from '@/components/layout/CrtEffects.vue'
 import AppHeader from '@/components/layout/AppHeader.vue'
@@ -21,11 +22,14 @@ import SystemSettings from '@/components/system/SystemSettings.vue'
 const postsStore = usePostsStore()
 const { loading, error } = storeToRefs(postsStore)
 
+const categoriesStore = useCategoriesStore()
+
 const uiStore = useUiStore()
 const { activeView } = storeToRefs(uiStore)
 
 onMounted(() => {
   uiStore.applyToBody()
+  categoriesStore.fetchActiveCategories()
   postsStore.fetchPosts()
 })
 

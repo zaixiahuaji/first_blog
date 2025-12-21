@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import { AxiosHeaders } from 'axios'
 import { getAuth } from '@/api/generated/auth/auth'
 import type { LoginDto, RegisterDto } from '@/api/generated/model'
 import { AXIOS_INSTANCE } from '@/api/axios-instance'
@@ -42,6 +43,7 @@ export const useAuthStore = defineStore('auth', {
     user: null as UserPayload | null,
     loading: false,
     error: null as string | null,
+    interceptorInstalled: false,
   }),
   getters: {
     isAuthenticated: (state) => !!state.token,
@@ -49,10 +51,8 @@ export const useAuthStore = defineStore('auth', {
   },
   actions: {
     initialize() {
-      if (this.token) {
-        this.decodeToken(this.token)
-        this.setupInterceptor()
-      }
+      this.setupInterceptor()
+      if (this.token && !this.user) this.decodeToken(this.token)
     },
     decodeToken(token: string) {
       try {
@@ -108,10 +108,14 @@ export const useAuthStore = defineStore('auth', {
       }
     },
     setupInterceptor() {
-      if (!this.token) return
+      if (this.interceptorInstalled) return
+      this.interceptorInstalled = true
 
       AXIOS_INSTANCE.interceptors.request.use((config) => {
-        config.headers.Authorization = `Bearer ${this.token}`
+        const headers = AxiosHeaders.from(config.headers)
+        if (this.token) headers.set('Authorization', `Bearer ${this.token}`)
+        else headers.delete('Authorization')
+        config.headers = headers
         return config
       })
 
@@ -127,4 +131,3 @@ export const useAuthStore = defineStore('auth', {
     },
   },
 })
-

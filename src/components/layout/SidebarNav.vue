@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useUiStore, type MainView } from '@/stores/ui'
-import { usePostsStore, type PostFilter, categoryAccentMap } from '@/stores/posts'
+import { usePostsStore, type PostFilter } from '@/stores/posts'
+import { useCategoriesStore } from '@/stores/categories'
 
 const uiStore = useUiStore()
 const { activeView } = storeToRefs(uiStore)
@@ -13,6 +14,9 @@ const ARCHIVE_DIR_TRANSITION = `height ${ARCHIVE_DIR_TRANSITION_MS}ms ease, opac
 
 const postsStore = usePostsStore()
 const { filter } = storeToRefs(postsStore)
+
+const categoriesStore = useCategoriesStore()
+const { activeCategories } = storeToRefs(categoriesStore)
 
 const isViewActive = (view: MainView) => activeView.value === view
 const setView = (view: MainView) => uiStore.setActiveView(view)
@@ -25,12 +29,21 @@ watch(
   { immediate: true },
 )
 
-const filterItems: Array<{ label: string; value: PostFilter; accent: string }> = [
-  { label: '根目录', value: 'all', accent: categoryAccentMap.tech },
-  { label: '技术_日志', value: 'tech', accent: categoryAccentMap.tech },
-  { label: '合成_波', value: 'music', accent: categoryAccentMap.music },
-  { label: '视觉_影像', value: 'visuals', accent: categoryAccentMap.visuals },
-]
+const filterItems = computed<Array<{ label: string; value: PostFilter; accent: string }>>(() => {
+  const items: Array<{ label: string; value: PostFilter; accent: string }> = [
+    { label: '根目录', value: 'all', accent: '#ff8800' },
+  ]
+
+  for (const category of activeCategories.value) {
+    items.push({
+      label: category.name,
+      value: category.slug,
+      accent: category.color,
+    })
+  }
+
+  return items
+})
 
 const handleArchiveClick = () => {
   if (activeView.value === 'archive') {

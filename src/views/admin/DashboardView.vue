@@ -33,10 +33,19 @@ const handleSave = async (postData: Partial<PostItem>) => {
     
     if (editingPost.value) {
       // Update
-      await postsControllerUpdate(editingPost.value.id.toString(), postData as any)
+      const { id: _id, createdAt: _createdAt, updatedAt: _updatedAt, ...rest } =
+        postData
+      await postsControllerUpdate(editingPost.value.id, rest as any)
     } else {
       // Create
-      await postsControllerCreate(postData as any)
+      const payload = {
+        title: postData.title ?? '',
+        category: postData.category ?? 'other',
+        date: postData.date ?? '',
+        excerpt: postData.excerpt ?? '',
+        content: postData.content ?? '',
+      }
+      await postsControllerCreate(payload as any)
     }
     
     // Refresh and close
@@ -54,35 +63,13 @@ const fetchPosts = async () => {
   loading.value = true
   try {
     const { postsControllerFindAll } = getPosts()
-    const response = await postsControllerFindAll()
-    const rawData = response as any
-    // Handle array wrapped in { items: ... } (NestJS pagination) or { data: ... } or direct array
-    const items = Array.isArray(rawData)
-      ? rawData
-      : Array.isArray(rawData?.items)
-        ? rawData.items
-        : Array.isArray(rawData?.data)
-          ? rawData.data
-          : []
-
-    // Map to PostItem
-    let mappedPosts = items.map((item: any) => ({
-      id: item.id ?? item._id,
-      title: item.title,
-      category: item.category,
-      date: item.date ?? item.createdAt ?? item.created_at,
-      excerpt: item.excerpt ?? item.description,
-      content: item.content ?? item.body,
-      author: item.author, // Assuming 'author' field exists
-      username: item.username // Or 'username'
-    }))
+    const response = await postsControllerFindAll({ page: 1, limit: 100 })
+    let mappedPosts = response.items ?? []
 
     // Client-side RBAC Filtering (Fallback)
     if (authStore.user?.role === 'user' && authStore.user?.username) {
       const currentUsername = authStore.user.username
-      mappedPosts = mappedPosts.filter((p: any) => 
-        (p.author === currentUsername) || (p.username === currentUsername)
-      )
+      mappedPosts = mappedPosts.filter((p: any) => p.username === currentUsername)
     }
 
     posts.value = mappedPosts
@@ -138,6 +125,13 @@ onMounted(() => {
       </div>
       <div class="flex gap-4">
         <button @click="openCreateEditor" class="hover:underline">[ 新建文章 ]</button>
+        <button
+          v-if="authStore.userRole === 'admin'"
+          @click="router.push('/admin/categories')"
+          class="hover:underline"
+        >
+          [ 类别管理 ]
+        </button>
         <button @click="handleLogout" class="hover:text-red-500 hover:underline">[ 断开连接 ]</button>
       </div>
     </header>
@@ -179,7 +173,7 @@ onMounted(() => {
                 #{{ post.id.toString().slice(0, 8) }}...
               </td>
               <td class="p-4 font-bold truncate max-w-xs">{{ post.title }}</td>
-              <td class="p-4 font-vt323 text-lg">{{ post.username || post.author || 'UNKNOWN' }}</td>
+              <td class="p-4 font-vt323 text-lg">{{ post.username || 'UNKNOWN' }}</td>
               <td class="p-4 uppercase text-xs">
                 <span class="border border-[#00ff00] px-1">{{ post.category }}</span>
               </td>

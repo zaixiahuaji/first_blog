@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue'
 import type { PostItem } from '@/stores/posts'
+import { useCategoriesStore } from '@/stores/categories'
+import { useAuthStore } from '@/stores/auth'
 
 const props = defineProps<{
   isOpen: boolean
@@ -13,9 +15,14 @@ const emit = defineEmits<{
   (e: 'save', post: Partial<PostItem>): void
 }>()
 
+const categoriesStore = useCategoriesStore()
+const authStore = useAuthStore()
+
+const isAdmin = computed(() => authStore.userRole === 'admin')
+
 const formData = ref<Partial<PostItem>>({
   title: '',
-  category: 'tech',
+  category: 'other',
   date: '',
   excerpt: '',
   content: '',
@@ -35,11 +42,76 @@ const updateDate = () => {
   }
 }
 
+const ensureCategoriesLoaded = async () => {
+  await categoriesStore.fetchActiveCategories()
+  if (isAdmin.value) {
+    await categoriesStore.fetchAdminCategories()
+  }
+}
+
+watch(
+  () => props.isOpen,
+  (open) => {
+    if (!open) return
+    ensureCategoriesLoaded()
+  },
+  { immediate: true },
+)
+
+const getDefaultCategorySlug = () => {
+  const other = categoriesStore.activeCategories.find((c) => c.slug === 'other')
+  return other?.slug ?? categoriesStore.activeCategories[0]?.slug ?? 'other'
+}
+
+type CategoryOption = {
+  slug: string
+  name: string
+  sortOrder: number
+  isActive: boolean
+}
+
+const categoryOptions = computed<CategoryOption[]>(() => {
+  const fromAdmin = isAdmin.value && categoriesStore.adminCategories.length > 0
+
+  const base: CategoryOption[] = fromAdmin
+    ? categoriesStore.adminCategories.map((c) => ({
+        slug: c.slug,
+        name: c.name,
+        sortOrder: c.sortOrder,
+        isActive: c.isActive,
+      }))
+    : categoriesStore.activeCategories.map((c) => ({
+        slug: c.slug,
+        name: c.name,
+        sortOrder: c.sortOrder,
+        isActive: true,
+      }))
+
+  const selected = formData.value.category
+  if (selected && !base.some((c) => c.slug === selected)) {
+    base.push({
+      slug: selected,
+      name: categoriesStore.getLabel(selected),
+      sortOrder: Number.MAX_SAFE_INTEGER,
+      isActive: base.length === 0 ? true : false,
+    })
+  }
+
+  if (!selected && base.length > 0) {
+    formData.value.category = getDefaultCategorySlug()
+  }
+
+  return [...base].sort((a, b) => a.sortOrder - b.sortOrder)
+})
+
 watch(
   () => props.post,
   (newPost) => {
     if (newPost) {
-      formData.value = { ...newPost }
+      formData.value = {
+        ...newPost,
+        category: newPost.category || getDefaultCategorySlug(),
+      }
       // Split existing date
       const date = new Date(newPost.date)
       if (!isNaN(date.getTime())) {
@@ -56,7 +128,7 @@ watch(
       
       formData.value = {
         title: '',
-        category: 'tech',
+        category: getDefaultCategorySlug(),
         excerpt: '',
         content: '',
       }
@@ -112,11 +184,14 @@ const handleSubmit = () => {
               <label class="block text-[#00ff00] uppercase text-sm font-bold">分类</label>
               <select
                 v-model="formData.category"
+                required
                 class="w-full bg-black border border-[#00ff00] p-2 text-[#00ff00] focus:outline-none focus:shadow-[0_0_10px_#00ff00] font-sharetech"
               >
-                <option value="tech">技术_日志 (TECH)</option>
-                <option value="music">合成_波 (MUSIC)</option>
-                <option value="visuals">视觉_影像 (VISUALS)</option>
+                <option v-for="category in categoryOptions" :key="category.slug" :value="category.slug">
+                  {{ category.name }}{{ category.isActive ? '' : ' (disabled)' }} ({{
+                    category.slug.toUpperCase()
+                  }})
+                </option>
               </select>
             </div>
 
