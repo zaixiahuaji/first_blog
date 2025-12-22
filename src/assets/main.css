@@ -157,10 +157,6 @@ body.no-crt .scan-line {
     linear-gradient(to bottom, rgba(0, 0, 0, 0.05) 1px, transparent 1px);
 }
 
-body.no-grid .bg-grid {
-  background-image: none !important;
-}
-
 /* Compatibility with index2.html */
 .hidden-view {
   display: none !important;
