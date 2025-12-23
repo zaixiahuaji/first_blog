@@ -12,7 +12,8 @@ const crtEnabled = computed({
 const uaExpanded = ref(false)
 
 const nowMs = ref(Date.now())
-const uptimeSeconds = ref(0)
+const uptimeMs = ref(typeof performance !== 'undefined' ? performance.now() : 0)
+const uptimeSeconds = computed(() => Math.max(0, Math.floor(uptimeMs.value / 1000)))
 
 type ViewportInfo = { width: number; height: number; dpr: number }
 const viewport = ref<ViewportInfo>({ width: 0, height: 0, dpr: 1 })
@@ -140,7 +141,7 @@ onMounted(() => {
 
   timer = window.setInterval(() => {
     nowMs.value = Date.now()
-    uptimeSeconds.value += 1
+    uptimeMs.value = typeof performance !== 'undefined' ? performance.now() : uptimeMs.value + 1000
     updateMemory()
   }, 1000)
 })

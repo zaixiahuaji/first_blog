@@ -16,6 +16,7 @@ const QUERY_MAX_LENGTH = 32
 const TOP_N = 5
 const ACTION_COOLDOWN_MS = 5000
 const REQUEST_TIMEOUT_MS = 8000
+const CLOCK_TICK_MS = 200
 
 type StepState = 'idle' | 'loading' | 'ok' | 'error'
 
@@ -44,7 +45,7 @@ let clockTimer: number | undefined
 onMounted(() => {
   clockTimer = window.setInterval(() => {
     nowMs.value = Date.now()
-  }, 200)
+  }, CLOCK_TICK_MS)
 })
 
 onBeforeUnmount(() => {
@@ -119,11 +120,13 @@ const runTimed = async <T>(
     const result = await task()
     const durationMs = performance.now() - start
     telemetryStore.logNetwork(key, { ok: true, durationMs })
+    triggerLinkPulse('ok', 6)
     return { ok: true, durationMs, result }
   } catch (e) {
     const durationMs = performance.now() - start
     const failureType = classifyFailureType(e)
     telemetryStore.logNetwork(key, { ok: false, durationMs, failureType })
+    triggerLinkPulse('error', 14)
     return { ok: false, durationMs, failureType }
   }
 }
@@ -132,6 +135,7 @@ const runSelfCheck = async () => {
   if (selfCheckRunning.value || isCooldownActive.value) return
   startCooldown()
   telemetryStore.logUi('SELF_CHECK')
+  triggerLinkPulse('ui', 4)
 
   selfCheckRunning.value = true
   pingTotal.value = { key: 'PING_TOTAL', state: 'loading' }
@@ -182,6 +186,7 @@ const runSearchDemo = async () => {
 
   startCooldown()
   telemetryStore.logUi('SEARCH_TRIGGER', `长度=${queryLen.value}`)
+  triggerLinkPulse('ui', 4)
 
   searchRunning.value = true
   keywordLane.value = { state: 'loading', items: [] }
@@ -245,29 +250,65 @@ const signalStrength = computed(() => {
   return 40
 })
 
-const matrixLines = ref<string[]>([])
-let matrixTimer: number | undefined
+type LinkPulseKind = 'ok' | 'error' | 'ui'
 
-const buildMatrixLine = () => {
-  const width = 64
-  let out = ''
-  for (let i = 0; i < width; i += 1) out += Math.random() > 0.5 ? '1' : '0'
-  return out
+const linkLastPulseAt = ref(0)
+const linkLastPulseIntensity = ref(0)
+const linkPulseKind = ref<LinkPulseKind>('ui')
+
+const triggerLinkPulse = (kind: LinkPulseKind, intensity = 8) => {
+  linkPulseKind.value = kind
+  linkLastPulseAt.value = Date.now()
+  linkLastPulseIntensity.value = intensity
 }
 
-const refreshMatrix = () => {
-  const lines: string[] = []
-  for (let i = 0; i < 8; i += 1) lines.push(buildMatrixLine())
-  matrixLines.value = lines
-}
-
-onMounted(() => {
-  refreshMatrix()
-  matrixTimer = window.setInterval(refreshMatrix, 900)
+const linkPulseActive = computed(() => {
+  const ageMs = nowMs.value - linkLastPulseAt.value
+  if (linkPulseKind.value === 'error') return ageMs < 1200
+  if (linkPulseKind.value === 'ok') return ageMs < 800
+  return ageMs < 500
 })
 
-onBeforeUnmount(() => {
-  if (matrixTimer) window.clearInterval(matrixTimer)
+const linkPulseColor = computed(() => {
+  const ageMs = nowMs.value - linkLastPulseAt.value
+  if (linkPulseKind.value === 'error' && ageMs < 1200) return '#ff8800'
+  if (linkPulseKind.value === 'ok' && ageMs < 800) return '#00cc7a'
+  if (selfCheckRunning.value || searchRunning.value) return '#00a3cc'
+  return '#00ff00'
+})
+
+const linkBaseColor = computed(() => {
+  if (pingTotal.value.state === 'error' || pingCategories.value.state === 'error') return '#ff8800'
+  if (overallOnline.value) return '#00ff00'
+  if (selfCheckRunning.value || searchRunning.value) return '#00a3cc'
+  return '#7a7a80'
+})
+
+const linkActiveColor = computed(() => (linkPulseActive.value ? linkPulseColor.value : linkBaseColor.value))
+
+const linkDotDuration = computed(() => {
+  if (linkPulseActive.value) return '1.2s'
+  if (selfCheckRunning.value || searchRunning.value) return '1.8s'
+  if (overallOnline.value) return '2.4s'
+  return '3.0s'
+})
+
+const linkDotStyle = (index: number) => {
+  const delay = -index * 0.7
+  const color = linkActiveColor.value
+  const glow = 10 + (linkPulseActive.value ? linkLastPulseIntensity.value : 0)
+  return {
+    backgroundColor: color,
+    boxShadow: `0 0 ${glow}px ${color}`,
+    animationDuration: linkDotDuration.value,
+    animationDelay: `${delay}s`,
+  }
+}
+
+const linkStatusText = computed(() => {
+  if (selfCheckRunning.value || searchRunning.value) return '工作中'
+  if (pingTotal.value.state === 'error' || pingCategories.value.state === 'error') return '异常'
+  return overallOnline.value ? '稳定' : '待机'
 })
 
 const humanLabel = (key: keyof typeof TELEMETRY_LABELS) => TELEMETRY_LABELS[key] ?? key
@@ -484,24 +525,107 @@ const humanLabel = (key: keyof typeof TELEMETRY_LABELS) => TELEMETRY_LABELS[key]
 
         <div class="border-2 border-[#2d2d30] bg-[#2d2d30] p-4 text-[#00ff00] font-vt323">
           <div class="flex items-center justify-between text-xs text-white/70 font-bold uppercase">
-            <span>数据流</span>
-            <span class="text-[#00ff00]">{{ overallOnline ? '同步' : '噪声' }}</span>
+            <span>链路拓扑</span>
+            <span :style="{ color: linkActiveColor }">{{ linkStatusText }}</span>
           </div>
 
           <div class="mt-3 h-44 border-2 border-white/10 bg-black/20 p-3 overflow-hidden relative">
             <div
               class="absolute inset-0 opacity-20 bg-[repeating-linear-gradient(0deg,transparent,transparent_2px,#00ff00_3px)]"
             ></div>
-            <pre class="relative text-xs leading-4 opacity-80 select-none">
-{{ matrixLines.join('\n') }}
-            </pre>
+            <div
+              class="absolute inset-0 opacity-10 bg-[repeating-linear-gradient(90deg,transparent,transparent_12px,#00ff00_13px)]"
+            ></div>
+
+            <div class="relative w-full h-full">
+              <div class="link-track absolute left-4 right-4 top-1/2 -translate-y-1/2">
+                <div class="link-line" :style="{ backgroundColor: linkBaseColor }"></div>
+                <div
+                  v-for="i in 3"
+                  :key="i"
+                  class="link-dot"
+                  :style="linkDotStyle(i - 1)"
+                ></div>
+              </div>
+
+              <div class="relative z-10 h-full flex items-center justify-between gap-3 px-1 font-sharetech">
+                <div
+                  class="px-3 py-2 text-[10px] font-bold uppercase tracking-widest border-2 bg-black/40 text-white/80 min-w-0 text-center"
+                  :style="{ borderColor: linkActiveColor }"
+                >
+                  Browser
+                </div>
+                <div
+                  class="px-3 py-2 text-[10px] font-bold uppercase tracking-widest border-2 bg-black/40 text-white/80 min-w-0 text-center"
+                  :style="{ borderColor: linkActiveColor }"
+                >
+                  API
+                </div>
+                <div
+                  class="px-3 py-2 text-[10px] font-bold uppercase tracking-widest border-2 bg-black/40 text-white/80 min-w-0 text-center"
+                  :style="{ borderColor: linkActiveColor }"
+                >
+                  DB
+                </div>
+                <div
+                  class="px-3 py-2 text-[10px] font-bold uppercase tracking-widest border-2 bg-black/40 text-white/80 min-w-0 text-center"
+                  :style="{ borderColor: linkActiveColor }"
+                >
+                  Vector
+                </div>
+              </div>
+            </div>
           </div>
 
           <div class="mt-3 text-[10px] text-white/60 font-sharetech">
-            冷却: {{ isCooldownActive ? `${cooldownRemainingSec}s` : '就绪' }} | 最大长度: {{ QUERY_MAX_LENGTH }} | 超时: {{ REQUEST_TIMEOUT_MS / 1000 }}s
+            Browser → API → DB → Vector | 冷却: {{ isCooldownActive ? `${cooldownRemainingSec}s` : '就绪' }} | 最大长度:
+            {{ QUERY_MAX_LENGTH }} | 超时: {{ REQUEST_TIMEOUT_MS / 1000 }}s
           </div>
         </div>
       </div>
     </div>
   </section>
 </template>
+
+<style scoped>
+.link-track {
+  height: 24px;
+}
+
+.link-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 2px;
+  opacity: 0.55;
+}
+
+.link-dot {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  animation-name: linkDot;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  opacity: 0.9;
+}
+
+@keyframes linkDot {
+  0% {
+    left: 0;
+    opacity: 0.55;
+  }
+  10% {
+    opacity: 0.95;
+  }
+  100% {
+    left: calc(100% - 8px);
+    opacity: 0.55;
+  }
+}
+</style>

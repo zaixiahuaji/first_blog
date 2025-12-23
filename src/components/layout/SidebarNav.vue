@@ -174,11 +174,17 @@ const isFilterActive = (value: PostFilter) => filter.value === value
         <div>
           <button
             type="button"
-            class="sys-btn w-full py-3 px-4 text-left border-2 border-[#2d2d30] font-bold uppercase tracking-wider shadow-[4px_4px_0px_rgba(0,0,0,0.1)] hover:translate-x-1 transition-transform"
+            class="sys-btn w-full py-3 px-4 text-left border-2 border-[#2d2d30] font-bold uppercase tracking-wider shadow-[4px_4px_0px_rgba(0,0,0,0.1)] hover:translate-x-1 transition-transform flex items-center justify-between gap-3"
             :class="isViewActive('archive') ? 'bg-[#2d2d30] text-white' : 'bg-white text-[#2d2d30]'"
             @click="handleArchiveClick"
           >
-            [ 数据库_日志 ]
+            <span>[ 数据库_日志 ]</span>
+            <span
+              class="text-lg font-vt323 opacity-70 transition-transform duration-200"
+              :class="activeView === 'archive' && archiveDirOpen ? 'rotate-90' : 'rotate-0'"
+            >
+              >
+            </span>
           </button>
 
           <Transition

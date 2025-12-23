@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { storeToRefs } from 'pinia'
 import { formatTelemetryEntry, useTelemetryStore } from '@/stores/telemetry'
 import { useCategoriesStore } from '@/stores/categories'
 import { usePostsStore } from '@/stores/posts'
+
+const ACTION_COOLDOWN_MS = 5000
 
 type ExportState = 'idle' | 'done' | 'error'
 
@@ -16,6 +18,29 @@ const { activeCategories } = storeToRefs(categoriesStore)
 
 const exportingKey = ref<string | null>(null)
 const exportStates = ref<Record<string, ExportState>>({})
+
+const nowMs = ref(Date.now())
+let clockTimer: number | undefined
+
+onMounted(() => {
+  clockTimer = window.setInterval(() => {
+    nowMs.value = Date.now()
+  }, 200)
+})
+
+onBeforeUnmount(() => {
+  if (clockTimer) window.clearInterval(clockTimer)
+})
+
+const cooldownUntil = ref(0)
+const cooldownRemainingSec = computed(() =>
+  Math.max(0, Math.ceil((cooldownUntil.value - nowMs.value) / 1000)),
+)
+const isCooldownActive = computed(() => cooldownRemainingSec.value > 0)
+
+const startCooldown = () => {
+  cooldownUntil.value = Date.now() + ACTION_COOLDOWN_MS
+}
 
 const nowIso = () => new Date().toISOString()
 
@@ -139,7 +164,6 @@ const categoriesJson = computed(() => ({
   generatedAt: nowIso(),
   scope: { source: 'client-session', loadedCount: activeCategories.value.length },
   items: activeCategories.value.map((c) => ({
-    id: c.id,
     slug: c.slug,
     name: c.name,
     color: c.color,
@@ -166,14 +190,6 @@ const exportItems = computed<ExportItem[]>(() => [
     build: () => new Blob([buildSessionLogsMd('full')], { type: 'text/markdown;charset=utf-8' }),
   },
   {
-    key: 'session-logs-summary',
-    label: '本次会话日志（摘要）',
-    description: '与「复制摘要」一致：摘要头部 + 最近 30 条日志。',
-    typeLabel: 'MD',
-    filename: () => `huaji-session-summary-${timestampForFilename()}.md`,
-    build: () => new Blob([buildSessionLogsMd('summary')], { type: 'text/markdown;charset=utf-8' }),
-  },
-  {
     key: 'posts-index',
     label: '文章索引（当前已加载）',
     description: `仅导出目录字段（不含正文/username/excerpt），共 ${postsStore.posts.length} 条。`,
@@ -194,7 +210,8 @@ const exportItems = computed<ExportItem[]>(() => [
 ])
 
 const exportFile = (item: ExportItem) => {
-  if (exportingKey.value) return
+  if (exportingKey.value || isCooldownActive.value) return
+  startCooldown()
   exportingKey.value = item.key
   exportStates.value[item.key] = 'idle'
 
@@ -229,7 +246,7 @@ const exportFile = (item: ExportItem) => {
         </div>
         <div class="text-xs font-bold text-[#2d2d30] border-2 border-[#2d2d30] px-3 py-2 bg-white">
           LOG: {{ entries.length }}/200 · POSTS: {{ postsStore.posts.length }}/{{ postsStore.total }} · CAT:
-          {{ activeCategories.length }}
+          {{ activeCategories.length }} · 冷却: {{ isCooldownActive ? `${cooldownRemainingSec}s` : '就绪' }}
         </div>
       </div>
     </div>
@@ -266,10 +283,16 @@ const exportFile = (item: ExportItem) => {
         <button
           type="button"
           class="px-4 py-2 border-2 border-[#2d2d30] text-xs font-bold uppercase hover:bg-[#2d2d30] hover:text-white transition-colors disabled:opacity-50 disabled:hover:bg-transparent disabled:hover:text-[#2d2d30]"
-          :disabled="exportingKey !== null"
+          :disabled="exportingKey !== null || isCooldownActive"
           @click="exportFile(item)"
         >
-          {{ exportingKey === item.key ? '生成中...' : '下载' }}
+          {{
+            exportingKey === item.key
+              ? '生成中...'
+              : isCooldownActive
+                ? `冷却 ${cooldownRemainingSec}s`
+                : '下载'
+          }}
         </button>
       </div>
     </div>
@@ -277,7 +300,15 @@ const exportFile = (item: ExportItem) => {
     <div class="mt-6 border-2 border-[#2d2d30] bg-[#2d2d30] p-4 text-[#00ff00] font-vt323">
       <div class="flex items-center justify-between text-xs text-white/70 font-bold uppercase">
         <span>EXPORT_STATUS</span>
-        <span class="text-[#00ff00]">{{ exportingKey ? 'BUSY' : 'READY' }}</span>
+        <span class="text-[#00ff00]">
+          {{
+            exportingKey
+              ? '忙碌'
+              : isCooldownActive
+                ? `冷却 ${cooldownRemainingSec}s`
+                : '就绪'
+          }}
+        </span>
       </div>
       <div class="mt-3 text-xs text-white/70 font-sharetech">
         FILE_NAME: <span class="text-[#00ff00]">huaji-*</span> · FORMAT:
