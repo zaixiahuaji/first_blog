@@ -1,36 +1,15 @@
 import { defineStore } from 'pinia'
 import { getPosts } from '@/api/generated/posts/posts'
+import type { PostDto, PostsControllerFindAllParams } from '@/api/generated/model'
 
-export type PostCategory = 'tech' | 'music' | 'visuals'
-export type PostFilter = PostCategory | 'all'
+export type PostFilter = 'all' | string
 
-export interface PostItem {
-  id: number | string
-  title: string
-  category: PostCategory
-  date: string
-  excerpt: string
-  content: string
-  username?: string // Author username
-  author?: string // Fallback or alternative author field
-}
-
-export const categoryLabelMap: Record<PostCategory, string> = {
-  tech: '技术',
-  music: '音乐',
-  visuals: '视觉',
-}
-
-export const categoryAccentMap: Record<PostCategory, string> = {
-  tech: '#ff8800',
-  music: '#e62e2e',
-  visuals: '#00a3cc',
-}
+export type PostItem = PostDto
 
 export const usePostsStore = defineStore('posts', {
   state: () => ({
     filter: 'all' as PostFilter,
-    activePostId: null as number | string | null,
+    activePostId: null as string | null,
     searchQuery: '',
     searchMode: 'keyword' as 'keyword' | 'semantic',
     page: 1,
@@ -41,11 +20,7 @@ export const usePostsStore = defineStore('posts', {
     posts: [] as PostItem[],
   }),
   getters: {
-    // Filter logic moved to backend, but we keep this just in case, or for pre-fetched data
-    // Actually, with server-side filtering, we should rely on state.posts directly
-    // But to keep compatibility if filter is not 'all', we might want to ensure consistency
-    // However, if we fetch with category param, state.posts will only contain that category.
-    filteredPosts: (state) => state.posts, 
+    filteredPosts: (state) => state.posts,
     activePost: (state) => state.posts.find((p) => p.id === state.activePostId),
     hasMore: (state) => state.posts.length < state.total,
   },
@@ -57,7 +32,7 @@ export const usePostsStore = defineStore('posts', {
       this.posts = []
       this.fetchPosts()
     },
-    openPost(id: number | string) {
+    openPost(id: string) {
       this.activePostId = id
     },
     closePost() {
@@ -80,8 +55,8 @@ export const usePostsStore = defineStore('posts', {
       this.error = null
       try {
         const { postsControllerFindAll } = getPosts()
-        
-        const params: any = {
+
+        const params: PostsControllerFindAllParams = {
           page: this.page,
           limit: this.limit,
         }
@@ -98,38 +73,15 @@ export const usePostsStore = defineStore('posts', {
           }
         }
 
-        // Orval generated type is void, so we cast to any first
         const response = await postsControllerFindAll(params)
-        
-        console.log('Raw API Response (Orval):', response)
 
-        const rawData = response as any
-        // Handle array wrapped in { items: ... } (NestJS pagination)
-        const items = Array.isArray(rawData)
-          ? rawData
-          : Array.isArray(rawData?.items)
-            ? rawData.items
-            : []
-        
-        const total = rawData?.total ?? rawData?.length ?? 0
-        this.total = total
-
-        const mappedItems = items.map((item: any) => ({
-          id: item.id ?? item._id ?? Math.random(),
-          title: item.title ?? '无标题',
-          category: item.category ?? 'tech',
-          date: item.date ?? item.createdAt ?? item.created_at ?? new Date().toISOString(),
-          excerpt: item.excerpt ?? item.description ?? '暂无摘要',
-          content: item.content ?? item.body ?? '',
-          username: item.username ?? item.author ?? 'Unknown',
-        }))
+        this.total = response.total ?? 0
 
         if (isLoadMore) {
-          this.posts.push(...mappedItems)
+          this.posts.push(...(response.items ?? []))
         } else {
-          this.posts = mappedItems
+          this.posts = response.items ?? []
         }
-
       } catch (e) {
         this.error = '无法加载数据'
         console.error('Fetch posts failed:', e)

@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import RegisterSuccessModal from '@/components/admin/RegisterSuccessModal.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -13,6 +14,7 @@ const email = ref('') // Email for register
 const password = ref('')
 const isLoading = ref(false)
 const error = ref('')
+const registerSuccessOpen = ref(false)
 
 // Check if string looks like an email
 const isEmail = (str: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(str)
@@ -95,13 +97,8 @@ const handleRegister = async () => {
     isRegisterMode.value = false
     loginIdentity.value = username.value || email.value
     password.value = '' // Clear password for security
-    
-    // Show temporary success message using the error field (in green or just text)
-    // We'll just reset error for now or add a success state if needed. 
-    // Re-using error for notification but styling it might be confusing if red.
-    // Let's just switch. The user will see the login form.
-    alert('注册成功，请登录') // Simple feedback for now
-    
+    registerSuccessOpen.value = true
+     
   } catch (e: any) {
     error.value = e.response?.data?.message || '注册失败'
   } finally {
@@ -210,6 +207,8 @@ const handleSubmit = () => {
       <div class="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-[#00ff00]"></div>
       <div class="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-[#00ff00]"></div>
     </div>
+
+    <RegisterSuccessModal :isOpen="registerSuccessOpen" @close="registerSuccessOpen = false" />
   </div>
 </template>
 
@@ -221,4 +220,3 @@ const handleSubmit = () => {
   background-size: 100% 2px, 3px 100%;
 }
 </style>
-

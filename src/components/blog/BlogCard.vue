@@ -1,16 +1,18 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { categoryAccentMap, categoryLabelMap, type PostItem, usePostsStore } from '@/stores/posts'
+import { type PostItem, usePostsStore } from '@/stores/posts'
+import { useCategoriesStore } from '@/stores/categories'
 
 const props = defineProps<{
   post: PostItem
 }>()
 
 const postsStore = usePostsStore()
+const categoriesStore = useCategoriesStore()
 
-const accentColor = computed(() => categoryAccentMap[props.post.category])
+const accentColor = computed(() => categoriesStore.getColor(props.post.category))
 const accentShadow = computed(() => `4px 4px 0px ${accentColor.value}`)
-const categoryLabel = computed(() => categoryLabelMap[props.post.category])
+const categoryLabel = computed(() => categoriesStore.getLabel(props.post.category))
 
 const openModal = () => {
   postsStore.openPost(props.post.id)
@@ -68,4 +70,3 @@ const openModal = () => {
   color: #fff;
 }
 </style>
-

@@ -6,18 +6,21 @@
  * OpenAPI spec version: 1.0
  */
 
-export interface CreatePostDto {
+export interface PostDto {
+  id: string;
+  /** @maxLength 12 */
+  username: string;
   /** @maxLength 255 */
   title: string;
   /**
-   * 类别 slug（仅字母/数字/下划线，<=12，强制小写）
+   * 类别 slug
    * @maxLength 12
    */
   category: string;
   /** @maxLength 32 */
   date: string;
-  /** 列表页短摘要 */
   excerpt: string;
-  /** 文章正文内容 */
   content: string;
+  createdAt: string;
+  updatedAt: string;
 }

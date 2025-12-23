@@ -91,18 +91,16 @@ onUnmounted(() => {
     <!-- Search Bar -->
     <div class="flex-1 max-w-md mx-4 relative group flex gap-2 h-10">
       <!-- Semantic Toggle Button -->
-      <button
-        @click="toggleSemanticSearch"
+      <button @click="toggleSemanticSearch"
         class="h-full w-24 border-2 flex items-center justify-center font-bold text-xs transition-colors shrink-0"
-        :class="isSemanticSearch 
-          ? 'bg-[#ff8800] border-[#ff8800] text-black shadow-[0_0_8px_#ff8800]' 
-          : 'bg-white border-[#2d2d30] text-[#2d2d30] hover:bg-[#2d2d30] hover:text-white'"
-        title="切换搜索模式"
-      >
+        :class="isSemanticSearch
+          ? 'bg-[#ff8800] border-[#ff8800] text-black shadow-[0_0_8px_#ff8800]'
+          : 'bg-white border-[#2d2d30] text-[#2d2d30] hover:bg-[#2d2d30] hover:text-white'" title="切换搜索模式">
         {{ isSemanticSearch ? '语义搜索' : '精确搜索' }}
       </button>
 
-      <div class="flex-1 flex items-center border-2 border-[#2d2d30] bg-[#f4f4f6] focus-within:bg-white transition-colors h-full"
+      <div
+        class="flex-1 flex items-center border-2 border-[#2d2d30] bg-[#f4f4f6] focus-within:bg-white transition-colors h-full"
         :class="{ 'shadow-[4px_4px_0px_#00a3cc] border-[#00a3cc]': isSearchFocused }">
         <span class="pl-3 text-[#2d2d30] font-bold">></span>
         <input v-model="searchInput" @input="handleSearchInput" @focus="isSearchFocused = true"
@@ -115,11 +113,9 @@ onUnmounted(() => {
     </div>
 
     <div class="hidden md:flex gap-6 items-center">
-      <div 
-        @click="router.push('/admin/login')"
+      <div @click="router.push('/admin/login')"
         class="text-xs border border-[#e62e2e] text-[#e62e2e] px-2 py-1 uppercase bg-[#e62e2e]/5 cursor-pointer hover:bg-[#e62e2e]/20 transition-colors"
-        title="管理员登录"
-      >
+        title="神秘按钮">
         REC ●
       </div>
       <div class="flex gap-1">

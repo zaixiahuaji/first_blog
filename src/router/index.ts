@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
+import { useAuthStore } from '@/stores/auth'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -28,16 +29,33 @@ const router = createRouter({
       component: () => import('../views/admin/DashboardView.vue'),
       meta: { requiresAuth: true },
     },
+    {
+      path: '/admin/categories',
+      name: 'admin-categories',
+      component: () => import('../views/admin/CategoriesView.vue'),
+      meta: { requiresAuth: true, requiresRole: 'admin' },
+    },
   ],
 })
 
 router.beforeEach((to, from, next) => {
-  const token = localStorage.getItem('auth_token')
-  if (to.meta.requiresAuth && !token) {
-    next('/admin/login')
-  } else {
-    next()
+  const authStore = useAuthStore()
+  if (!authStore.user && authStore.token) {
+    authStore.initialize()
   }
+
+  if (to.meta.requiresAuth && !authStore.isAuthenticated) {
+    next('/admin/login')
+    return
+  }
+
+  const requiredRole = (to.meta.requiresRole as string | undefined) ?? ''
+  if (requiredRole && authStore.userRole !== requiredRole) {
+    next('/admin/dashboard')
+    return
+  }
+
+  next()
 })
 
 export default router

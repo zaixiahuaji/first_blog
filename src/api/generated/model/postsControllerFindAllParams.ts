@@ -7,7 +7,6 @@
  */
 import type { PostsControllerFindAllSort } from './postsControllerFindAllSort';
 import type { PostsControllerFindAllOrder } from './postsControllerFindAllOrder';
-import type { PostsControllerFindAllCategory } from './postsControllerFindAllCategory';
 
 export type PostsControllerFindAllParams = {
 /**
@@ -21,7 +20,11 @@ page?: number;
 limit?: number;
 sort?: PostsControllerFindAllSort;
 order?: PostsControllerFindAllOrder;
-category?: PostsControllerFindAllCategory;
+/**
+ * 类别 slug（仅字母/数字/下划线，<=12，强制小写）
+ * @maxLength 12
+ */
+category?: string;
 /**
  * 关键词搜索（ILIKE）
  */
