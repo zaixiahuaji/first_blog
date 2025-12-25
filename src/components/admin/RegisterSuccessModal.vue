@@ -37,7 +37,7 @@ const close = () => emit('close')
         <div class="mt-4 text-sm leading-6 opacity-80 font-sharetech">
           <p>下一步：</p>
           <p>- 返回登录界面</p>
-          <p>- 输入邮箱/账户与密码</p>
+          <p>- 输入用户名与密码</p>
         </div>
 
         <div class="mt-6 flex items-center justify-end gap-3">
@@ -53,4 +53,3 @@ const close = () => emit('close')
     </div>
   </Teleport>
 </template>
-

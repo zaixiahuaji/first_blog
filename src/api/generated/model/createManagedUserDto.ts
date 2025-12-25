@@ -5,21 +5,18 @@
  * 个人博客 API 文档
  * OpenAPI spec version: 1.0
  */
+import type { CreateManagedUserDtoRole } from './createManagedUserDtoRole';
 
-export interface RegisterDto {
+export interface CreateManagedUserDto {
   /**
    * 用户名唯一，中文/英文/数字/下划线
    * @maxLength 12
    */
   username: string;
   /**
-   * 邀请码必须为大写，格式 XXXX-XXXX
-   * @maxLength 9
-   */
-  inviteCode: string;
-  /**
    * 仅字母和数字，长度 1-10
    * @maxLength 10
    */
   password: string;
+  role: CreateManagedUserDtoRole;
 }

@@ -6,11 +6,6 @@
  * OpenAPI spec version: 1.0
  */
 
-export interface LoginDto {
-  /**
-   * 用户名
-   * @maxLength 12
-   */
-  username: string;
-  password: string;
+export interface UpdateInviteCodeDto {
+  enabled: boolean;
 }

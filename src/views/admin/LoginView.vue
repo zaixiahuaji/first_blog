@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import RegisterSuccessModal from '@/components/admin/RegisterSuccessModal.vue'
@@ -8,40 +8,28 @@ const router = useRouter()
 const authStore = useAuthStore()
 
 const isRegisterMode = ref(false)
-const loginIdentity = ref('') // Username or Email for login
-const username = ref('') // Username for register
-const email = ref('') // Email for register
+const username = ref('')
 const password = ref('')
+const inviteCode = ref('')
 const isLoading = ref(false)
 const error = ref('')
 const registerSuccessOpen = ref(false)
 
-// Check if string looks like an email
-const isEmail = (str: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(str)
+const INVITE_CODE_REGEX = /^[A-Z0-9]{4}-[A-Z0-9]{4}$/
 
 const toggleMode = () => {
   isRegisterMode.value = !isRegisterMode.value
   error.value = ''
   password.value = ''
-  // Keep relevant fields if possible, or clear them
-  if (isRegisterMode.value) {
-    if (isEmail(loginIdentity.value)) {
-      email.value = loginIdentity.value
-      username.value = ''
-    } else {
-      username.value = loginIdentity.value
-      email.value = ''
-    }
-  } else {
-    // Switching back to login
-    if (username.value) loginIdentity.value = username.value
-    else if (email.value) loginIdentity.value = email.value
+  if (!isRegisterMode.value) {
+    inviteCode.value = ''
   }
 }
 
 const handleLogin = async () => {
-  if (!loginIdentity.value || !password.value) {
-    error.value = '请输入终端凭证'
+  const trimmedUsername = username.value.trim()
+  if (!trimmedUsername || !password.value) {
+    error.value = '请输入用户名和密码'
     return
   }
 
@@ -49,37 +37,42 @@ const handleLogin = async () => {
   error.value = ''
 
   try {
-    const payload = isEmail(loginIdentity.value)
-      ? { email: loginIdentity.value, password: password.value }
-      : { username: loginIdentity.value, password: password.value }
-
-    await authStore.login(payload)
+    await authStore.login({ username: trimmedUsername, password: password.value })
     router.push('/admin/dashboard')
   } catch (e: any) {
-    error.value = '访问被拒绝: 凭证无效'
-    password.value = '' // Clear password on failure
+    error.value = '访问被拒绝，凭证无效'
+    password.value = ''
   } finally {
     isLoading.value = false
   }
 }
 
 const handleRegister = async () => {
-  if (!username.value || !email.value || !password.value) {
+  const trimmedUsername = username.value.trim()
+  const trimmedInviteCode = inviteCode.value.trim()
+
+  if (!trimmedUsername || !password.value || !trimmedInviteCode) {
     error.value = '请填写所有必填字段'
     return
   }
 
-  // Basic validation based on DTO
-  if (username.value.length > 12) {
-    error.value = '用户名过长 (最大12字符)'
+  if (trimmedUsername.length > 12) {
+    error.value = '用户名过长（最多 12 字符）'
     return
   }
-  if (!/^[a-zA-Z0-9]+$/.test(password.value)) { // Assuming basic alphanumeric requirement from DTO comment "仅字母和数字"
-     // Wait, DTO says "仅字母和数字" but usually password needs more? 
-     // Let's stick to DTO comment "仅字母和数字，长度 1-10" for now as per DTO
+
+  if (!INVITE_CODE_REGEX.test(trimmedInviteCode)) {
+    error.value = '邀请码格式错误，必须为 XXXX-XXXX 且全大写'
+    return
   }
+
   if (password.value.length > 10) {
-    error.value = '密码过长 (最大10字符)'
+    error.value = '密码过长（最多 10 字符）'
+    return
+  }
+
+  if (!/^[a-zA-Z0-9]+$/.test(password.value)) {
+    error.value = '密码仅支持字母与数字'
     return
   }
 
@@ -88,17 +81,15 @@ const handleRegister = async () => {
 
   try {
     await authStore.register({
-      username: username.value,
-      email: email.value,
+      username: trimmedUsername,
+      inviteCode: trimmedInviteCode,
       password: password.value,
     })
-    
-    // Switch to login mode
+
     isRegisterMode.value = false
-    loginIdentity.value = username.value || email.value
-    password.value = '' // Clear password for security
+    password.value = ''
+    inviteCode.value = ''
     registerSuccessOpen.value = true
-     
   } catch (e: any) {
     error.value = e.response?.data?.message || '注册失败'
   } finally {
@@ -124,46 +115,42 @@ const handleSubmit = () => {
     <div class="w-full max-w-md border-2 border-[#00ff00] p-8 relative shadow-[0_0_20px_rgba(0,255,0,0.2)]">
       <!-- Header -->
       <div class="text-center mb-8 border-b border-[#00ff00] pb-4">
-        <h1 class="text-4xl uppercase tracking-widest mb-2">{{ isRegisterMode ? '人员登记' : '系统入口' }}</h1>
+        <h1 class="text-4xl uppercase tracking-widest mb-2">
+          {{ isRegisterMode ? '人员登记' : '系统入口' }}
+        </h1>
         <p class="text-sm opacity-70">受限区域 // 仅限授权人员</p>
       </div>
 
       <!-- Form -->
       <form @submit.prevent="handleSubmit" class="space-y-6">
-        <template v-if="!isRegisterMode">
-          <div>
-            <label class="block text-xl mb-2">> 邮箱 / 账户:</label>
-            <input
-              v-model="loginIdentity"
-              type="text"
-              class="w-full bg-black border border-[#00ff00] px-4 py-2 text-[#00ff00] focus:outline-none focus:shadow-[0_0_10px_#00ff00] font-sharetech"
-              autofocus
-            />
-          </div>
-        </template>
+        <div>
+          <label class="block text-xl mb-2">> 用户名:</label>
+          <input
+            v-model="username"
+            type="text"
+            maxlength="12"
+            class="w-full bg-black border border-[#00ff00] px-4 py-2 text-[#00ff00] focus:outline-none focus:shadow-[0_0_10px_#00ff00] font-sharetech"
+            autofocus
+          />
+        </div>
 
-        <template v-else>
+        <template v-if="isRegisterMode">
           <div>
-            <label class="block text-xl mb-2">> 用户名 (Max 12):</label>
+            <label class="block text-xl mb-2">> 邀请码 (XXXX-XXXX):</label>
             <input
-              v-model="username"
+              v-model="inviteCode"
               type="text"
-              maxlength="12"
+              maxlength="9"
               class="w-full bg-black border border-[#00ff00] px-4 py-2 text-[#00ff00] focus:outline-none focus:shadow-[0_0_10px_#00ff00] font-sharetech"
-            />
-          </div>
-          <div>
-            <label class="block text-xl mb-2">> 邮箱:</label>
-            <input
-              v-model="email"
-              type="email"
-              class="w-full bg-black border border-[#00ff00] px-4 py-2 text-[#00ff00] focus:outline-none focus:shadow-[0_0_10px_#00ff00] font-sharetech"
+              placeholder="ABCD-1234"
             />
           </div>
         </template>
 
         <div>
-          <label class="block text-xl mb-2">> 密码 {{ isRegisterMode ? '(Max 10, 字母数字)' : '' }}:</label>
+          <label class="block text-xl mb-2">
+            > 密码 {{ isRegisterMode ? '(最多 10，字母数字)' : '' }}:
+          </label>
           <input
             v-model="password"
             type="password"
@@ -186,8 +173,8 @@ const handleSubmit = () => {
         </button>
 
         <div class="text-center pt-2">
-          <button 
-            type="button" 
+          <button
+            type="button"
             @click="toggleMode"
             class="text-sm underline hover:text-[#00cc00] uppercase tracking-wider"
           >
@@ -198,7 +185,7 @@ const handleSubmit = () => {
 
       <!-- Decorative Footer -->
       <div class="mt-8 text-center text-xs opacity-50">
-        终端 ID: ADMIN-01 // 状态: {{ isRegisterMode ? '写入模式' : '等待输入' }}
+        终端 ID: ADMIN-01 // 状态 {{ isRegisterMode ? '写入模式' : '等待输入' }}
       </div>
 
       <!-- Corner Decorations -->

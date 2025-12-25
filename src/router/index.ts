@@ -50,9 +50,16 @@ router.beforeEach((to, from, next) => {
   }
 
   const requiredRole = (to.meta.requiresRole as string | undefined) ?? ''
-  if (requiredRole && authStore.userRole !== requiredRole) {
-    next('/admin/dashboard')
-    return
+  if (requiredRole) {
+    if (requiredRole === 'admin') {
+      if (!['admin', 'super_admin'].includes(authStore.userRole)) {
+        next('/admin/dashboard')
+        return
+      }
+    } else if (authStore.userRole !== requiredRole) {
+      next('/admin/dashboard')
+      return
+    }
   }
 
   next()

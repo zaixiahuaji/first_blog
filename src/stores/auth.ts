@@ -4,6 +4,8 @@ import { getAuth } from '@/api/generated/auth/auth'
 import type { LoginDto, RegisterDto } from '@/api/generated/model'
 import { AXIOS_INSTANCE } from '@/api/axios-instance'
 
+const ADMIN_ROLES = new Set(['admin', 'super_admin'])
+
 // Simple JWT decode function to avoid extra dependency
 function jwtDecode<T>(token: string): T {
   try {
@@ -30,7 +32,6 @@ function jwtDecode<T>(token: string): T {
 
 interface UserPayload {
   sub: number | string
-  email: string
   role: string
   username?: string
   iat?: number
@@ -48,6 +49,8 @@ export const useAuthStore = defineStore('auth', {
   getters: {
     isAuthenticated: (state) => !!state.token,
     userRole: (state) => state.user?.role || '',
+    isAdminLike: (state) => ADMIN_ROLES.has(state.user?.role ?? ''),
+    isSuperAdmin: (state) => state.user?.role === 'super_admin',
   },
   actions: {
     initialize() {

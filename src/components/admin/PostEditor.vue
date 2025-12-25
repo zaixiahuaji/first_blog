@@ -18,7 +18,9 @@ const emit = defineEmits<{
 const categoriesStore = useCategoriesStore()
 const authStore = useAuthStore()
 
-const isAdmin = computed(() => authStore.userRole === 'admin')
+const isAdminLike = computed(
+  () => authStore.userRole === 'admin' || authStore.userRole === 'super_admin',
+)
 
 const formData = ref<Partial<PostItem>>({
   title: '',
@@ -44,7 +46,7 @@ const updateDate = () => {
 
 const ensureCategoriesLoaded = async () => {
   await categoriesStore.fetchActiveCategories()
-  if (isAdmin.value) {
+  if (isAdminLike.value) {
     await categoriesStore.fetchAdminCategories()
   }
 }
@@ -71,7 +73,7 @@ type CategoryOption = {
 }
 
 const categoryOptions = computed<CategoryOption[]>(() => {
-  const fromAdmin = isAdmin.value && categoriesStore.adminCategories.length > 0
+  const fromAdmin = isAdminLike.value && categoriesStore.adminCategories.length > 0
 
   const base: CategoryOption[] = fromAdmin
     ? categoriesStore.adminCategories.map((c) => ({

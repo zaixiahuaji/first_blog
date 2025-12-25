@@ -45,7 +45,9 @@ const createForm = reactive<{
   isActive: true,
 })
 
-const isAdmin = computed(() => authStore.userRole === 'admin')
+const isAdminLike = computed(
+  () => authStore.userRole === 'admin' || authStore.userRole === 'super_admin',
+)
 const loading = computed(() => categoriesStore.loadingAdmin)
 const error = computed(() => categoriesStore.errorAdmin)
 
@@ -234,7 +236,7 @@ onMounted(async () => {
     authStore.initialize()
   }
 
-  if (!isAdmin.value) {
+  if (!isAdminLike.value) {
     router.replace('/admin/dashboard')
     return
   }

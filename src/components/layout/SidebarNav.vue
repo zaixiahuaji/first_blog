@@ -156,9 +156,7 @@ const isFilterActive = (value: PostFilter) => filter.value === value
 </script>
 
 <template>
-  <aside
-    class="w-64 bg-[#f4f4f6] border-r-2 border-[#2d2d30] hidden md:flex flex-col p-6 gap-6 h-full overflow-y-auto"
-  >
+  <aside class="w-64 bg-[#f4f4f6] border-r-2 border-[#2d2d30] hidden md:flex flex-col p-6 gap-6 h-full overflow-y-auto">
     <!-- 滚动提示 -->
     <div class="text-[10px] text-center text-[#999] uppercase tracking-widest border-b border-[#ccc] pb-2 mb-2">
       :: 系统导航 ::
@@ -172,57 +170,36 @@ const isFilterActive = (value: PostFilter) => filter.value === value
       </h3>
       <div class="flex flex-col gap-3">
         <div>
-          <button
-            type="button"
+          <button type="button"
             class="sys-btn w-full py-3 px-4 text-left border-2 border-[#2d2d30] font-bold uppercase tracking-wider shadow-[4px_4px_0px_rgba(0,0,0,0.1)] hover:translate-x-1 transition-transform flex items-center justify-between gap-3"
             :class="isViewActive('archive') ? 'bg-[#2d2d30] text-white' : 'bg-white text-[#2d2d30]'"
-            @click="handleArchiveClick"
-          >
-            <span>[ 数据库_日志 ]</span>
-            <span
-              class="text-lg font-vt323 opacity-70 transition-transform duration-200"
-              :class="activeView === 'archive' && archiveDirOpen ? 'rotate-90' : 'rotate-0'"
-            >
+            @click="handleArchiveClick">
+            <span style="font-weight: 700">[ 数据库_日志 ]</span>
+            <span class="text-lg font-vt323 opacity-70 transition-transform duration-200"
+              :class="activeView === 'archive' && archiveDirOpen ? 'rotate-90' : 'rotate-0'">
               >
             </span>
           </button>
 
-          <Transition
-            :css="false"
-            @before-enter="onArchiveDirBeforeEnter"
-            @enter="onArchiveDirEnter"
-            @after-enter="onArchiveDirAfterEnter"
-            @enter-cancelled="onArchiveDirEnterCancelled"
-            @before-leave="onArchiveDirBeforeLeave"
-            @leave="onArchiveDirLeave"
-            @after-leave="onArchiveDirAfterLeave"
-            @leave-cancelled="onArchiveDirLeaveCancelled"
-          >
+          <Transition :css="false" @before-enter="onArchiveDirBeforeEnter" @enter="onArchiveDirEnter"
+            @after-enter="onArchiveDirAfterEnter" @enter-cancelled="onArchiveDirEnterCancelled"
+            @before-leave="onArchiveDirBeforeLeave" @leave="onArchiveDirLeave" @after-leave="onArchiveDirAfterLeave"
+            @leave-cancelled="onArchiveDirLeaveCancelled">
             <!-- 目录 (仅 Archive) -->
             <div v-if="activeView === 'archive' && archiveDirOpen">
               <div class="pt-3">
-                <div
-                  class="border-2 border-[#2d2d30] p-1 bg-white shadow-[4px_4px_0px_rgba(0,0,0,0.1)]"
-                >
+                <div class="border-2 border-[#2d2d30] p-1 bg-white shadow-[4px_4px_0px_rgba(0,0,0,0.1)]">
                   <div class="bg-[#f0f0f2] p-3">
-                    <h3
-                      class="text-[#2d2d30] uppercase text-sm mb-4 border-b border-[#ccc] pb-1 font-bold"
-                    >
+                    <h3 class="text-[#2d2d30] uppercase text-sm mb-4 border-b border-[#ccc] pb-1 font-bold">
                       :: 目录
                     </h3>
                     <nav class="flex flex-col gap-3">
-                      <button
-                        v-for="item in filterItems"
-                        :key="item.value"
-                        type="button"
+                      <button v-for="item in filterItems" :key="item.value" type="button"
                         class="group text-left text-lg transition-colors flex items-center gap-2 font-bold"
                         :style="{ color: isFilterActive(item.value) ? item.accent : '#555' }"
-                        @click="setFilter(item.value)"
-                      >
-                        <span
-                          class="opacity-0 group-hover:opacity-100 transition-opacity"
-                          :style="{ color: item.accent, opacity: isFilterActive(item.value) ? 1 : undefined }"
-                        >
+                        @click="setFilter(item.value)">
+                        <span class="opacity-0 group-hover:opacity-100 transition-opacity"
+                          :style="{ color: item.accent, opacity: isFilterActive(item.value) ? 1 : undefined }">
                           >
                         </span>
                         {{ item.label }}
@@ -234,40 +211,32 @@ const isFilterActive = (value: PostFilter) => filter.value === value
             </div>
           </Transition>
         </div>
-        <button
-          type="button"
+        <button type="button"
           class="sys-btn w-full py-3 px-4 text-left border-2 border-[#2d2d30] font-bold uppercase tracking-wider shadow-[4px_4px_0px_rgba(0,0,0,0.1)] hover:translate-x-1 transition-transform"
           :class="isViewActive('dashboard') ? 'bg-[#2d2d30] text-white' : 'bg-white text-[#2d2d30]'"
-          @click="setView('dashboard')"
-        >
+          @click="setView('dashboard')">
           [ 数据_可视化 ]
         </button>
-        <button
-          type="button"
+        <button type="button"
           class="sys-btn w-full py-3 px-4 text-left border-2 border-[#2d2d30] font-bold uppercase tracking-wider shadow-[4px_4px_0px_rgba(0,0,0,0.1)] hover:translate-x-1 transition-transform"
           :class="isViewActive('comms') ? 'bg-[#2d2d30] text-white' : 'bg-white text-[#2d2d30]'"
-          @click="setView('comms')"
-        >
+          @click="setView('comms')">
           [ 通讯_链路 ]
         </button>
       </div>
 
       <h3 class="text-[#555] text-xs uppercase my-3 font-bold">扩展资源</h3>
       <div class="flex flex-col gap-3">
-        <button
-          type="button"
+        <button type="button"
           class="sys-btn w-full py-3 px-4 text-left border-2 border-[#2d2d30] font-bold uppercase tracking-wider shadow-[4px_4px_0px_rgba(0,0,0,0.1)] hover:translate-x-1 transition-transform"
           :class="isViewActive('downloads') ? 'bg-[#2d2d30] text-white' : 'bg-white text-[#2d2d30]'"
-          @click="setView('downloads')"
-        >
+          @click="setView('downloads')">
           [ 数据_存档 ]
         </button>
-        <button
-          type="button"
+        <button type="button"
           class="sys-btn w-full py-3 px-4 text-left border-2 border-[#2d2d30] font-bold uppercase tracking-wider shadow-[4px_4px_0px_rgba(0,0,0,0.1)] hover:translate-x-1 transition-transform"
           :class="isViewActive('logs') ? 'bg-[#2d2d30] text-white' : 'bg-white text-[#2d2d30]'"
-          @click="setView('logs')"
-        >
+          @click="setView('logs')">
           [ 系统_日志 ]
         </button>
       </div>
@@ -276,12 +245,10 @@ const isFilterActive = (value: PostFilter) => filter.value === value
 
       <h3 class="text-[#555] text-xs uppercase mb-3 font-bold">配置</h3>
       <div class="flex flex-col gap-3">
-        <button
-          type="button"
+        <button type="button"
           class="sys-btn w-full py-3 px-4 text-left border-2 border-[#2d2d30] font-bold uppercase tracking-wider shadow-[4px_4px_0px_rgba(0,0,0,0.1)] hover:translate-x-1 transition-transform"
           :class="isViewActive('settings') ? 'bg-[#2d2d30] text-white' : 'bg-white text-[#2d2d30]'"
-          @click="setView('settings')"
-        >
+          @click="setView('settings')">
           [ 控制_面板 ]
         </button>
       </div>
