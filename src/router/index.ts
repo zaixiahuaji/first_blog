@@ -35,6 +35,12 @@ const router = createRouter({
       component: () => import('../views/admin/CategoriesView.vue'),
       meta: { requiresAuth: true, requiresRole: 'admin' },
     },
+    {
+      path: '/admin/super-admin',
+      name: 'admin-super-admin',
+      component: () => import('../views/admin/SuperAdminView.vue'),
+      meta: { requiresAuth: true, requiresRole: 'super_admin' },
+    },
   ],
 })
 

@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { onMounted, watch } from 'vue'
+import { onMounted, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { usePostsStore } from '@/stores/posts'
 import { useCategoriesStore } from '@/stores/categories'
 import { useUiStore } from '@/stores/ui'
+import BootLoader from '@/components/intro/BootLoader.vue'
 import CrtEffects from '@/components/layout/CrtEffects.vue'
 import AppHeader from '@/components/layout/AppHeader.vue'
 import SidebarNav from '@/components/layout/SidebarNav.vue'
@@ -27,6 +28,8 @@ const categoriesStore = useCategoriesStore()
 const uiStore = useUiStore()
 const { activeView } = storeToRefs(uiStore)
 
+const showIntro = ref(true)
+
 onMounted(() => {
   uiStore.applyToBody()
   categoriesStore.fetchActiveCategories()
@@ -41,66 +44,75 @@ watch(activeView, (view) => {
 </script>
 
 <template>
-  <div
-    class="h-screen w-screen flex flex-col relative bg-grid selection:bg-[#ff8800] selection:text-white text-[#2d2d30]"
+  <BootLoader v-if="showIntro" variant="hardcore" :duration-ms="3000" @done="showIntro = false" />
+
+  <Transition
+    enter-active-class="transition-opacity duration-300 ease-out"
+    enter-from-class="opacity-0"
+    enter-to-class="opacity-100"
   >
-    <CrtEffects />
+    <div
+      v-if="!showIntro"
+      class="h-screen w-screen flex flex-col relative bg-grid selection:bg-[#ff8800] selection:text-white text-[#2d2d30]"
+    >
+      <CrtEffects />
 
-    <PostModal />
+      <PostModal />
 
-    <AppHeader />
+      <AppHeader />
 
-    <div class="flex flex-1 overflow-hidden z-10">
-      <SidebarNav />
+      <div class="flex flex-1 overflow-hidden z-10">
+        <SidebarNav />
 
-      <main class="flex-1 overflow-y-auto p-4 md:p-8 bg-[#e6e6ea] relative scroll-smooth" id="main-viewport">
-        <!-- 视图 1: 数据库 (默认) -->
-        <div v-if="activeView === 'archive'" class="flex flex-col gap-12">
-          <MobileFilterNav class="md:hidden" />
-          <HeroBanner />
+        <main class="flex-1 overflow-y-auto p-4 md:p-8 bg-[#e6e6ea] relative scroll-smooth" id="main-viewport">
+          <!-- 视图 1: 数据库 (默认) -->
+          <div v-if="activeView === 'archive'" class="flex flex-col gap-12">
+            <MobileFilterNav class="md:hidden" />
+            <HeroBanner />
 
-          <!-- Loading State -->
-          <div v-if="loading && postsStore.page === 1" class="flex justify-center items-center py-20">
-            <div class="font-vt323 text-2xl text-[#2d2d30] animate-pulse">
-              正在从数据库加载记忆扇区...
+            <!-- Loading State -->
+            <div v-if="loading && postsStore.page === 1" class="flex justify-center items-center py-20">
+              <div class="font-vt323 text-2xl text-[#2d2d30] animate-pulse">
+                正在从数据库加载记忆扇区...
+              </div>
+            </div>
+
+            <!-- Error State -->
+            <div v-else-if="error" class="flex justify-center items-center py-20">
+              <div class="font-sharetech text-red-600 border border-red-600 p-4 bg-red-50">
+                错误: {{ error }}
+              </div>
+            </div>
+
+            <BlogGrid v-else />
+
+            <LoadMoreButton v-if="!loading && !error && postsStore.hasMore" />
+            <div
+              v-if="!loading && !error && !postsStore.hasMore && postsStore.posts.length > 0"
+              class="flex justify-center pb-12 font-vt323 text-gray-400"
+            >
+              -- 档案检索完毕 --
             </div>
           </div>
 
-          <!-- Error State -->
-          <div v-else-if="error" class="flex justify-center items-center py-20">
-            <div class="font-sharetech text-red-600 border border-red-600 p-4 bg-red-50">
-              错误: {{ error }}
-            </div>
-          </div>
+          <!-- 视图 2: 数据可视化 -->
+          <SystemDashboard v-else-if="activeView === 'dashboard'" />
 
-          <BlogGrid v-else />
+          <!-- 视图 3: 通讯链路 -->
+          <SystemComms v-else-if="activeView === 'comms'" />
 
-          <LoadMoreButton v-if="!loading && !error && postsStore.hasMore" />
-          <div
-            v-if="!loading && !error && !postsStore.hasMore && postsStore.posts.length > 0"
-            class="flex justify-center pb-12 font-vt323 text-gray-400"
-          >
-            -- 档案检索完毕 --
-          </div>
-        </div>
+          <!-- 视图 4: 资源存档 -->
+          <SystemDownloads v-else-if="activeView === 'downloads'" />
 
-        <!-- 视图 2: 数据可视化 -->
-        <SystemDashboard v-else-if="activeView === 'dashboard'" />
+          <!-- 视图 5: 系统日志 -->
+          <SystemLogs v-else-if="activeView === 'logs'" />
 
-        <!-- 视图 3: 通讯链路 -->
-        <SystemComms v-else-if="activeView === 'comms'" />
+          <!-- 视图 6: 设置 -->
+          <SystemSettings v-else-if="activeView === 'settings'" />
+        </main>
+      </div>
 
-        <!-- 视图 4: 资源存档 -->
-        <SystemDownloads v-else-if="activeView === 'downloads'" />
-
-        <!-- 视图 5: 系统日志 -->
-        <SystemLogs v-else-if="activeView === 'logs'" />
-
-        <!-- 视图 6: 设置 -->
-        <SystemSettings v-else-if="activeView === 'settings'" />
-      </main>
+      <AppFooter />
     </div>
-
-    <AppFooter />
-  </div>
+  </Transition>
 </template>
