@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { nextTick, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import AdminBootLoader from '@/components/intro/AdminBootLoader.vue'
 import RegisterSuccessModal from '@/components/admin/RegisterSuccessModal.vue'
 
 const router = useRouter()
@@ -14,6 +15,8 @@ const inviteCode = ref('')
 const isLoading = ref(false)
 const error = ref('')
 const registerSuccessOpen = ref(false)
+const showIntro = ref(true)
+const usernameInput = ref<HTMLInputElement | null>(null)
 
 const INVITE_CODE_REGEX = /^[A-Z0-9]{4}-[A-Z0-9]{4}$/
 
@@ -104,15 +107,24 @@ const handleSubmit = () => {
     handleLogin()
   }
 }
+
+const handleIntroDone = () => {
+  showIntro.value = false
+  nextTick(() => {
+    usernameInput.value?.focus()
+  })
+}
 </script>
 
 <template>
   <div class="min-h-screen bg-[#0a0a0a] text-[#00ff00] font-vt323 flex items-center justify-center p-4">
+    <AdminBootLoader v-if="showIntro" @done="handleIntroDone" />
+
     <!-- CRT Overlay -->
     <div class="fixed inset-0 crt-overlay z-50 pointer-events-none"></div>
     <div class="fixed inset-0 scan-line z-40 pointer-events-none"></div>
 
-    <div class="w-full max-w-md border-2 border-[#00ff00] p-8 relative shadow-[0_0_20px_rgba(0,255,0,0.2)]">
+    <div class="w-full max-w-md border-2 border-[#00ff00] p-8 relative shadow-[0_0_20px_rgba(0,255,0,0.2)] z-10">
       <!-- Header -->
       <div class="text-center mb-8 border-b border-[#00ff00] pb-4">
         <h1 class="text-4xl uppercase tracking-widest mb-2">
@@ -127,10 +139,10 @@ const handleSubmit = () => {
           <label class="block text-xl mb-2">> 用户名:</label>
           <input
             v-model="username"
+            ref="usernameInput"
             type="text"
             maxlength="12"
             class="w-full bg-black border border-[#00ff00] px-4 py-2 text-[#00ff00] focus:outline-none focus:shadow-[0_0_10px_#00ff00] font-sharetech"
-            autofocus
           />
         </div>
 

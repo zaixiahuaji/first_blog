@@ -73,8 +73,8 @@ const readStoredNumber = (key: string, fallback: number) => {
   }
 }
 
-const sfxEnabled = ref(readStoredBoolean(SFX_ENABLED_KEY, true))
-const sfxVolume = ref(clamp(readStoredNumber(SFX_VOLUME_KEY, 0.1), 0, 1))
+const sfxEnabled = ref(readStoredBoolean(SFX_ENABLED_KEY, false))
+const sfxVolume = ref(clamp(readStoredNumber(SFX_VOLUME_KEY, 0.3), 0, 1))
 
 watch(sfxEnabled, (value) => {
   try {
