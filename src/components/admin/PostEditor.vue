@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref, watch, computed } from 'vue'
+import { ref, watch, computed, nextTick } from 'vue'
 import type { PostItem } from '@/stores/posts'
 import { useCategoriesStore } from '@/stores/categories'
 import { useAuthStore } from '@/stores/auth'
+import { getAdminMedia } from '@/api/generated/admin-media/admin-media'
 
 const props = defineProps<{
   isOpen: boolean
@@ -30,6 +31,26 @@ const formData = ref<Partial<PostItem>>({
   content: '',
 })
 
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024
+const ALLOWED_IMAGE_TYPES = new Set([
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/gif',
+])
+
+const fileInputRef = ref<HTMLInputElement | null>(null)
+const contentInputRef = ref<HTMLTextAreaElement | null>(null)
+const isUploadingImage = ref(false)
+const uploadError = ref('')
+
+const showExternalImage = ref(false)
+const externalImageUrl = ref('')
+const externalImageAlt = ref('')
+const externalImageError = ref('')
+const externalImageUrlRef = ref<HTMLInputElement | null>(null)
+type UploadResult = { url: string; key: string }
+
 // Date parts
 const dateYear = ref('')
 const dateMonth = ref('')
@@ -42,6 +63,123 @@ const updateDate = () => {
   } else {
     formData.value.date = ''
   }
+}
+
+const buildAltFromFilename = (filename: string) => {
+  const trimmed = filename.trim()
+  if (!trimmed) return '图片'
+  const base = trimmed.replace(/\.[^/.]+$/, '')
+  return base || '图片'
+}
+
+const buildImageMarkdown = (url: string, altText?: string) => {
+  const alt = (altText || '').trim() || '图片'
+  return `![${alt}](${url})`
+}
+
+const insertMarkdownAtCursor = (markdown: string) => {
+  const textarea = contentInputRef.value
+  const current = formData.value.content ?? ''
+
+  if (!textarea) {
+    formData.value.content = `${current}${markdown}`
+    return
+  }
+
+  const start = textarea.selectionStart ?? 0
+  const end = textarea.selectionEnd ?? 0
+  const before = current.slice(0, start)
+  const after = current.slice(end)
+
+  const needsLeadingBreak = before.length > 0 && !before.endsWith('\n')
+  const needsTrailingBreak = after.length > 0 && !after.startsWith('\n')
+  const insertText = `${needsLeadingBreak ? '\n' : ''}${markdown}${needsTrailingBreak ? '\n' : ''}`
+
+  formData.value.content = `${before}${insertText}${after}`
+
+  nextTick(() => {
+    textarea.focus()
+    const caret = start + insertText.length
+    textarea.setSelectionRange(caret, caret)
+  })
+}
+
+const openFilePicker = () => {
+  uploadError.value = ''
+  fileInputRef.value?.click()
+}
+
+const validateImageFile = (file: File) => {
+  if (!ALLOWED_IMAGE_TYPES.has(file.type)) {
+    return '图片格式不支持'
+  }
+  if (file.size > MAX_IMAGE_BYTES) {
+    return '图片大小不能超过 5MB'
+  }
+  return ''
+}
+
+const handleFileChange = async (event: Event) => {
+  const target = event.target as HTMLInputElement | null
+  const file = target?.files?.[0]
+  if (!file) return
+  if (target) target.value = ''
+
+  const validationError = validateImageFile(file)
+  if (validationError) {
+    uploadError.value = validationError
+    return
+  }
+
+  isUploadingImage.value = true
+  uploadError.value = ''
+
+  try {
+    const { adminMediaControllerUploadImage } = getAdminMedia()
+    const res = (await adminMediaControllerUploadImage({
+      file,
+      alt: buildAltFromFilename(file.name),
+    })) as UploadResult
+
+    const url = res?.url
+    if (!url) {
+      throw new Error('上传失败')
+    }
+
+    insertMarkdownAtCursor(buildImageMarkdown(url, buildAltFromFilename(file.name)))
+  } catch (err: any) {
+    uploadError.value = err?.response?.data?.message || '上传失败'
+  } finally {
+    isUploadingImage.value = false
+  }
+}
+
+const openExternalImage = () => {
+  externalImageUrl.value = ''
+  externalImageAlt.value = ''
+  externalImageError.value = ''
+  showExternalImage.value = true
+  nextTick(() => externalImageUrlRef.value?.focus())
+}
+
+const closeExternalImage = () => {
+  externalImageError.value = ''
+  showExternalImage.value = false
+}
+
+const handleInsertExternalImage = () => {
+  const url = externalImageUrl.value.trim()
+  const alt = externalImageAlt.value.trim()
+  const isValid = /^https?:\/\/.+/i.test(url)
+
+  if (!url || !isValid) {
+    externalImageError.value = '请输入有效的图片链接（http/https）'
+    return
+  }
+
+  externalImageError.value = ''
+  insertMarkdownAtCursor(buildImageMarkdown(url, alt))
+  showExternalImage.value = false
 }
 
 const ensureCategoriesLoaded = async () => {
@@ -241,8 +379,40 @@ const handleSubmit = () => {
           </div>
 
           <div class="space-y-2">
-            <label class="block text-[#00ff00] uppercase text-sm font-bold">正文内容 (支持 Markdown)</label>
+            <div class="flex flex-wrap items-center justify-between gap-3">
+              <label class="block text-[#00ff00] uppercase text-sm font-bold">正文内容 (支持 Markdown)</label>
+              <div class="flex flex-wrap items-center gap-2">
+                <input
+                  ref="fileInputRef"
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/gif"
+                  class="hidden"
+                  @change="handleFileChange"
+                />
+                <button
+                  type="button"
+                  :disabled="isUploadingImage"
+                  @click="openFilePicker"
+                  class="px-3 py-1 border border-[#00ff00] text-[#00ff00] hover:bg-[#00ff00] hover:text-black transition-colors uppercase text-xs disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {{ isUploadingImage ? '上传中...' : '上传图片' }}
+                </button>
+                <button
+                  type="button"
+                  @click="openExternalImage"
+                  class="px-3 py-1 border border-[#00ff00] text-[#00ff00] hover:bg-[#00ff00] hover:text-black transition-colors uppercase text-xs"
+                >
+                  插入外链图片
+                </button>
+              </div>
+            </div>
+
+            <div v-if="uploadError" class="text-xs text-red-500 border border-red-500 px-2 py-1">
+              {{ uploadError }}
+            </div>
+
             <textarea
+              ref="contentInputRef"
               v-model="formData.content"
               rows="15"
               required
@@ -250,6 +420,66 @@ const handleSubmit = () => {
             ></textarea>
           </div>
         </form>
+      </div>
+
+      <div
+        v-if="showExternalImage"
+        class="absolute inset-0 z-20 flex items-center justify-center bg-black/80 backdrop-blur-sm"
+      >
+        <div class="w-full max-w-md border-2 border-[#00ff00] bg-[#0a0a0a] p-5">
+          <div class="flex items-center justify-between border-b border-[#00ff00] pb-3">
+            <div class="text-[#00ff00] uppercase text-sm font-bold">插入外链图片</div>
+            <button
+              type="button"
+              @click="closeExternalImage"
+              class="w-7 h-7 flex items-center justify-center border border-[#00ff00] text-[#00ff00] hover:bg-[#00ff00] hover:text-black transition-colors font-bold"
+            >
+              X
+            </button>
+          </div>
+
+          <div class="mt-4 space-y-3">
+            <div>
+              <label class="block text-[#00ff00] uppercase text-xs mb-1">图片 URL</label>
+              <input
+                ref="externalImageUrlRef"
+                v-model="externalImageUrl"
+                type="text"
+                placeholder="https://..."
+                class="w-full bg-black border border-[#00ff00] px-3 py-2 text-[#00ff00] focus:outline-none focus:shadow-[0_0_10px_#00ff00] font-sharetech text-sm"
+              />
+            </div>
+            <div>
+              <label class="block text-[#00ff00] uppercase text-xs mb-1">说明 (可选)</label>
+              <input
+                v-model="externalImageAlt"
+                type="text"
+                placeholder="图片说明"
+                class="w-full bg-black border border-[#00ff00] px-3 py-2 text-[#00ff00] focus:outline-none focus:shadow-[0_0_10px_#00ff00] font-sharetech text-sm"
+              />
+            </div>
+            <div v-if="externalImageError" class="text-xs text-red-500 border border-red-500 px-2 py-1">
+              {{ externalImageError }}
+            </div>
+          </div>
+
+          <div class="mt-4 flex justify-end gap-3">
+            <button
+              type="button"
+              @click="closeExternalImage"
+              class="px-4 py-2 border border-[#00ff00] text-[#00ff00] hover:bg-[#00ff00]/10 transition-colors uppercase text-xs"
+            >
+              取消
+            </button>
+            <button
+              type="button"
+              @click="handleInsertExternalImage"
+              class="px-4 py-2 bg-[#00ff00] text-black font-bold hover:bg-[#00cc00] transition-colors uppercase text-xs"
+            >
+              插入
+            </button>
+          </div>
+        </div>
       </div>
 
       <!-- Footer -->

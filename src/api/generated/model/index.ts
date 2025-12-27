@@ -6,6 +6,7 @@
  * OpenAPI spec version: 1.0
  */
 
+export * from './adminMediaControllerUploadImageBody';
 export * from './createCategoryDto';
 export * from './createCategoryDtoColor';
 export * from './createInviteCodeDto';

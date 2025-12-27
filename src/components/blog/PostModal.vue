@@ -190,4 +190,14 @@ const parsedContent = computed(() => {
   text-decoration: underline;
   text-underline-offset: 2px;
 }
+
+:deep(.markdown-content img) {
+  max-width: 100%;
+  height: auto;
+  max-height: 60vh;
+  object-fit: contain;
+  display: block;
+  margin: 1em 0;
+}
+
 </style>
