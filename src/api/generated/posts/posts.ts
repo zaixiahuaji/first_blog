@@ -48,6 +48,17 @@ const postsControllerCreate = (
       options);
     }
   /**
+ * @summary 获取文章总数（兼容旧路径）
+ */
+const postsControllerGetTotalCompat = (
+    
+ options?: SecondParameter<typeof customInstance<PostsTotalDto>>,) => {
+      return customInstance<PostsTotalDto>(
+      {url: `/api/posts/total`, method: 'GET'
+    },
+      options);
+    }
+  /**
  * @summary 获取文章总数
  */
 const postsControllerGetTotal = (
@@ -105,9 +116,10 @@ const postsControllerRemove = (
     },
       options);
     }
-  return {postsControllerFindAll,postsControllerCreate,postsControllerGetTotal,postsControllerGetCategoriesStats,postsControllerFindOne,postsControllerUpdate,postsControllerRemove}};
+  return {postsControllerFindAll,postsControllerCreate,postsControllerGetTotalCompat,postsControllerGetTotal,postsControllerGetCategoriesStats,postsControllerFindOne,postsControllerUpdate,postsControllerRemove}};
 export type PostsControllerFindAllResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getPosts>['postsControllerFindAll']>>>
 export type PostsControllerCreateResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getPosts>['postsControllerCreate']>>>
+export type PostsControllerGetTotalCompatResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getPosts>['postsControllerGetTotalCompat']>>>
 export type PostsControllerGetTotalResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getPosts>['postsControllerGetTotal']>>>
 export type PostsControllerGetCategoriesStatsResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getPosts>['postsControllerGetCategoriesStats']>>>
 export type PostsControllerFindOneResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getPosts>['postsControllerFindOne']>>>

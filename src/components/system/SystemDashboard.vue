@@ -1,7 +1,10 @@
 <script setup lang="ts">
   import { computed, onMounted, ref } from 'vue'
+  import { storeToRefs } from 'pinia'
   import { getPosts } from '@/api/generated/posts/posts'
+  import { getMetrics } from '@/api/generated/metrics/metrics'
   import type { PostsCategoryStatsItemDto } from '@/api/generated/model'
+  import { useMetricsStore } from '@/stores/metrics'
   
   type ChartItem = {
     slug: string
@@ -22,6 +25,11 @@
   
   const totalPosts = ref(0)
   const categories = ref<PostsCategoryStatsItemDto[]>([])
+
+  const metricsStore = useMetricsStore()
+  const { pageviewsTotal } = storeToRefs(metricsStore)
+  const storageUsedPercent = ref<number | null>(null)
+  const storageError = ref<string | null>(null)
 
   const hoveredSlug = ref<string | null>(null)
 
@@ -159,6 +167,16 @@
   }
 
   const formatPercent = (value: number) => `${Math.round(value * 100)}%`
+
+  const formatCount = (value: number | null) => {
+    if (value == null) return '--'
+    return value.toLocaleString()
+  }
+
+  const formatStoragePercent = (value: number | null) => {
+    if (value == null || !Number.isFinite(value)) return '--%'
+    return `${value.toFixed(1)}%`
+  }
   
   const fetchStats = async () => {
     loading.value = true
@@ -182,8 +200,26 @@
       loading.value = false
     }
   }
+
+  const fetchStorageUsage = async () => {
+    storageError.value = null
+    try {
+      const { metricsControllerGetStorageUsage } = getMetrics()
+      const response = await metricsControllerGetStorageUsage()
+      const usedPercent = response?.usedPercent
+      storageUsedPercent.value =
+        typeof usedPercent === 'number' && Number.isFinite(usedPercent) ? usedPercent : null
+    } catch (e) {
+      storageUsedPercent.value = null
+      storageError.value = 'æ— æ³•èŽ·å–å­˜å‚¨å ç”¨'
+      console.error('Failed to load storage usage:', e)
+    }
+  }
   
-  onMounted(fetchStats)
+  onMounted(() => {
+    fetchStats()
+    fetchStorageUsage()
+  })
   </script>
   
   <template>
@@ -202,14 +238,16 @@
         <div
           class="border-2 border-[#ccc] bg-[#f9f9fa] p-4 flex flex-col items-center justify-center gap-2"
         >
-          <span class="text-xs uppercase tracking-widest text-[#999]">日访问量</span>
-          <span class="text-4xl font-bold text-[#ff8800] font-vt323">8,402</span>
+          <span class="text-xs uppercase tracking-widest text-[#999]">总访问量</span>
+          <span class="text-4xl font-bold text-[#ff8800] font-vt323">{{ formatCount(pageviewsTotal) }}</span>
         </div>
         <div
           class="border-2 border-[#ccc] bg-[#f9f9fa] p-4 flex flex-col items-center justify-center gap-2"
         >
           <span class="text-xs uppercase tracking-widest text-[#999]">存储占用</span>
-          <span class="text-4xl font-bold text-[#00a3cc] font-vt323">64.5%</span>
+          <span class="text-4xl font-bold text-[#00a3cc] font-vt323">
+            {{ formatStoragePercent(storageUsedPercent) }}
+          </span>
         </div>
         <div
           class="border-2 border-[#ccc] bg-[#f9f9fa] p-4 flex flex-col items-center justify-center gap-2"
@@ -217,6 +255,13 @@
           <span class="text-xs uppercase tracking-widest text-[#999]">系统核心</span>
           <span class="text-4xl font-bold text-[#e62e2e] font-vt323">STABLE</span>
         </div>
+      </div>
+
+      <div
+        v-if="storageError"
+        class="-mt-8 mb-8 border border-red-600 bg-red-50 px-3 py-2 text-xs font-sharetech text-red-600"
+      >
+        å­˜å‚¨å ç”¨è¯»å–å¤±è´¥
       </div>
   
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">

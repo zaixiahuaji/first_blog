@@ -4,6 +4,7 @@ import { storeToRefs } from 'pinia'
 import { usePostsStore } from '@/stores/posts'
 import { useCategoriesStore } from '@/stores/categories'
 import { useUiStore } from '@/stores/ui'
+import { useMetricsStore } from '@/stores/metrics'
 import BootLoader from '@/components/intro/BootLoader.vue'
 import CrtEffects from '@/components/layout/CrtEffects.vue'
 import AppHeader from '@/components/layout/AppHeader.vue'
@@ -28,12 +29,15 @@ const categoriesStore = useCategoriesStore()
 const uiStore = useUiStore()
 const { activeView } = storeToRefs(uiStore)
 
+const metricsStore = useMetricsStore()
+
 const showIntro = ref(true)
 
 onMounted(() => {
   uiStore.applyToBody()
   categoriesStore.fetchActiveCategories()
   postsStore.fetchPosts()
+  metricsStore.incrementPageviews()
 })
 
 watch(activeView, (view) => {
