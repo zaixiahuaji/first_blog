@@ -6,6 +6,7 @@
  * OpenAPI spec version: 1.0
  */
 import type {
+  MetricsMemoryDto,
   MetricsPageviewsDto,
   MetricsStorageDto
 } from '.././model';
@@ -39,6 +40,18 @@ const metricsControllerGetStorageUsage = (
     },
       options);
     }
-  return {metricsControllerIncrementPageviews,metricsControllerGetStorageUsage}};
+  /**
+ * @summary Get memory usage.
+ */
+const metricsControllerGetMemoryUsage = (
+    
+ options?: SecondParameter<typeof customInstance<MetricsMemoryDto>>,) => {
+      return customInstance<MetricsMemoryDto>(
+      {url: `/api/metrics/memory`, method: 'GET'
+    },
+      options);
+    }
+  return {metricsControllerIncrementPageviews,metricsControllerGetStorageUsage,metricsControllerGetMemoryUsage}};
 export type MetricsControllerIncrementPageviewsResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getMetrics>['metricsControllerIncrementPageviews']>>>
 export type MetricsControllerGetStorageUsageResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getMetrics>['metricsControllerGetStorageUsage']>>>
+export type MetricsControllerGetMemoryUsageResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getMetrics>['metricsControllerGetMemoryUsage']>>>

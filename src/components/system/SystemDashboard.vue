@@ -211,7 +211,7 @@
         typeof usedPercent === 'number' && Number.isFinite(usedPercent) ? usedPercent : null
     } catch (e) {
       storageUsedPercent.value = null
-      storageError.value = 'æ— æ³•èŽ·å–å­˜å‚¨å ç”¨'
+      storageError.value = '无法获取存储占用'
       console.error('Failed to load storage usage:', e)
     }
   }
@@ -261,7 +261,7 @@
         v-if="storageError"
         class="-mt-8 mb-8 border border-red-600 bg-red-50 px-3 py-2 text-xs font-sharetech text-red-600"
       >
-        å­˜å‚¨å ç”¨è¯»å–å¤±è´¥
+      {{ storageError }}
       </div>
   
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">

@@ -1,7 +1,14 @@
 import { defineStore } from 'pinia'
 import { useTelemetryStore } from '@/stores/telemetry'
 
-export type MainView = 'archive' | 'dashboard' | 'comms' | 'downloads' | 'logs' | 'settings'
+export type MainView =
+  | 'archive'
+  | 'dashboard'
+  | 'comms'
+  | 'downloads'
+  | 'logs'
+  | 'settings'
+  | 'about'
 
 const toggleBodyClass = (className: string, enabled: boolean) => {
   if (typeof document === 'undefined') return

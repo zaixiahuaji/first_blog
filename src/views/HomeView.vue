@@ -20,6 +20,7 @@ import SystemComms from '@/components/system/SystemComms.vue'
 import SystemDownloads from '@/components/system/SystemDownloads.vue'
 import SystemLogs from '@/components/system/SystemLogs.vue'
 import SystemSettings from '@/components/system/SystemSettings.vue'
+import SystemAbout from '@/components/system/SystemAbout.vue'
 
 const postsStore = usePostsStore()
 const { loading, error } = storeToRefs(postsStore)
@@ -38,6 +39,7 @@ onMounted(() => {
   categoriesStore.fetchActiveCategories()
   postsStore.fetchPosts()
   metricsStore.incrementPageviews()
+  metricsStore.fetchMemoryUsage()
 })
 
 watch(activeView, (view) => {
@@ -113,6 +115,9 @@ watch(activeView, (view) => {
 
           <!-- 视图 6: 设置 -->
           <SystemSettings v-else-if="activeView === 'settings'" />
+
+          <!-- 视图 7: 关于此站 -->
+          <SystemAbout v-else-if="activeView === 'about'" />
         </main>
       </div>
 

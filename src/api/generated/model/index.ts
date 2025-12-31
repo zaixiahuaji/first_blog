@@ -16,6 +16,7 @@ export * from './createManagedUserDtoRole';
 export * from './createPostDto';
 export * from './createPostDtoCategory';
 export * from './loginDto';
+export * from './metricsMemoryDto';
 export * from './metricsPageviewsDto';
 export * from './metricsStorageDto';
 export * from './paginatedPostsDto';

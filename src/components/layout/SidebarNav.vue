@@ -4,6 +4,7 @@ import { storeToRefs } from 'pinia'
 import { useUiStore, type MainView } from '@/stores/ui'
 import { usePostsStore, type PostFilter } from '@/stores/posts'
 import { useCategoriesStore } from '@/stores/categories'
+import { useMetricsStore } from '@/stores/metrics'
 
 const uiStore = useUiStore()
 const { activeView } = storeToRefs(uiStore)
@@ -17,6 +18,9 @@ const { filter } = storeToRefs(postsStore)
 
 const categoriesStore = useCategoriesStore()
 const { activeCategories } = storeToRefs(categoriesStore)
+
+const metricsStore = useMetricsStore()
+const { memoryTotalBytes, memoryUsedBytes, memoryUsedPercent } = storeToRefs(metricsStore)
 
 const isViewActive = (view: MainView) => activeView.value === view
 const setView = (view: MainView) => uiStore.setActiveView(view)
@@ -153,6 +157,30 @@ const setFilter = (value: PostFilter) => {
 }
 
 const isFilterActive = (value: PostFilter) => filter.value === value
+
+const memoryPercent = computed(() => {
+  const value = memoryUsedPercent.value
+  if (typeof value !== 'number' || !Number.isFinite(value)) return 0
+  return Math.min(100, Math.max(0, value))
+})
+
+const bytesToGb = (bytes: number) => bytes / 1024 / 1024 / 1024
+
+const memoryLabel = computed(() => {
+  const used = memoryUsedBytes.value
+  const total = memoryTotalBytes.value
+  if (
+    typeof used !== 'number' ||
+    typeof total !== 'number' ||
+    !Number.isFinite(used) ||
+    !Number.isFinite(total) ||
+    total <= 0
+  ) {
+    return '-- / --'
+  }
+
+  return `${bytesToGb(used).toFixed(1)}GB / ${bytesToGb(total).toFixed(1)}GB`
+})
 </script>
 
 <template>
@@ -223,6 +251,14 @@ const isFilterActive = (value: PostFilter) => filter.value === value
           @click="setView('comms')">
           [ 通讯_链路 ]
         </button>
+        <button
+          type="button"
+          class="sys-btn w-full py-3 px-4 text-left border-2 border-[#2d2d30] font-bold uppercase tracking-wider shadow-[4px_4px_0px_rgba(0,0,0,0.1)] hover:translate-x-1 transition-transform"
+          :class="isViewActive('about') ? 'bg-[#2d2d30] text-white' : 'bg-white text-[#2d2d30]'"
+          @click="setView('about')"
+        >
+          [ 关于此站 ]
+        </button>
       </div>
 
       <h3 class="text-[#555] text-xs uppercase my-3 font-bold">扩展资源</h3>
@@ -259,10 +295,9 @@ const isFilterActive = (value: PostFilter) => filter.value === value
       <h4 class="text-[#555] text-xs uppercase mb-2 font-bold">硬件状态</h4>
       <div class="text-xs font-vt323 text-[#666] leading-tight space-y-1">
         <div class="w-full bg-[#ccc] h-1 mb-1">
-          <div class="bg-[#ff8800] h-full w-[45%]"></div>
+          <div class="bg-[#ff8800] h-full" :style="{ width: `${memoryPercent}%` }"></div>
         </div>
-        <p class="flex justify-between"><span>RAM:</span> <span>128KB [OK]</span></p>
-        <p class="flex justify-between"><span>NET:</span> <span>已连接</span></p>
+        <p class="flex justify-between"><span>RAM:</span> <span>{{ memoryLabel }}</span></p>
       </div>
     </div>
   </aside>
