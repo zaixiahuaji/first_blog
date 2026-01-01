@@ -23,7 +23,6 @@
           <span class="px-2 py-1 border-2 border-[#2d2d30] bg-white">NestJS</span>
           <span class="px-2 py-1 border-2 border-[#2d2d30] bg-white">PostgreSQL · pgvector</span>
           <span class="px-2 py-1 border-2 border-[#2d2d30] bg-white">Vue 3</span>
-          <span class="px-2 py-1 border-2 border-[#2d2d30] bg-white">orval</span>
           <span class="px-2 py-1 border-2 border-[#2d2d30] bg-white">Docker / 1Panel</span>
         </div>
       </div>

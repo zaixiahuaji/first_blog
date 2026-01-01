@@ -179,7 +179,7 @@ const memoryLabel = computed(() => {
     return '-- / --'
   }
 
-  return `${bytesToGb(used).toFixed(1)}GB / ${bytesToGb(total).toFixed(1)}GB`
+  return `${bytesToGb(used).toFixed(2)}GB / ${bytesToGb(total).toFixed(2)}GB`
 })
 </script>
 
@@ -193,7 +193,8 @@ const memoryLabel = computed(() => {
     <!-- 系统模块选择 -->
     <div class="flex-1">
       <h3 class="text-[#555] text-xs uppercase mb-3 font-bold flex justify-between">
-        <span>主模块</span>
+        <span class="text-[#555] text-xs uppercase font-bold">主模块</span>
+
         <span class="text-[#ff8800] animate-pulse">●在线</span>
       </h3>
       <div class="flex flex-col gap-3">
@@ -251,14 +252,7 @@ const memoryLabel = computed(() => {
           @click="setView('comms')">
           [ 通讯_链路 ]
         </button>
-        <button
-          type="button"
-          class="sys-btn w-full py-3 px-4 text-left border-2 border-[#2d2d30] font-bold uppercase tracking-wider shadow-[4px_4px_0px_rgba(0,0,0,0.1)] hover:translate-x-1 transition-transform"
-          :class="isViewActive('about') ? 'bg-[#2d2d30] text-white' : 'bg-white text-[#2d2d30]'"
-          @click="setView('about')"
-        >
-          [ 关于此站 ]
-        </button>
+
       </div>
 
       <h3 class="text-[#555] text-xs uppercase my-3 font-bold">扩展资源</h3>
@@ -277,7 +271,7 @@ const memoryLabel = computed(() => {
         </button>
       </div>
 
-      <div class="h-px bg-[#ccc] my-6"></div>
+      <div class="h-px bg-[#ccc] my-3"></div>
 
       <h3 class="text-[#555] text-xs uppercase mb-3 font-bold">配置</h3>
       <div class="flex flex-col gap-3">
@@ -286,6 +280,21 @@ const memoryLabel = computed(() => {
           :class="isViewActive('settings') ? 'bg-[#2d2d30] text-white' : 'bg-white text-[#2d2d30]'"
           @click="setView('settings')">
           [ 控制_面板 ]
+        </button>
+      </div>
+      <div class="h-px bg-[#ccc] my-3"></div>
+
+      <h3 class="text-[#555] text-xs uppercase font-bold">其它</h3>
+
+      <div class="flex flex-col gap-3">
+        
+      <button
+          type="button"
+          class="sys-btn w-full py-3 px-4 text-left border-2 border-[#2d2d30] font-bold uppercase tracking-wider shadow-[4px_4px_0px_rgba(0,0,0,0.1)] hover:translate-x-1 transition-transform"
+          :class="isViewActive('about') ? 'bg-[#2d2d30] text-white' : 'bg-white text-[#2d2d30]'"
+          @click="setView('about')"
+        >
+          [ 关于此站 ]
         </button>
       </div>
     </div>
