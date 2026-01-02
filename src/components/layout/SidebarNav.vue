@@ -271,9 +271,7 @@ const memoryLabel = computed(() => {
         </button>
       </div>
 
-      <div class="h-px bg-[#ccc] my-3"></div>
-
-      <h3 class="text-[#555] text-xs uppercase mb-3 font-bold">配置</h3>
+      <h3 class="text-[#555] text-xs uppercase my-3 font-bold">配置</h3>
       <div class="flex flex-col gap-3">
         <button type="button"
           class="sys-btn w-full py-3 px-4 text-left border-2 border-[#2d2d30] font-bold uppercase tracking-wider shadow-[4px_4px_0px_rgba(0,0,0,0.1)] hover:translate-x-1 transition-transform"
@@ -287,13 +285,11 @@ const memoryLabel = computed(() => {
       <h3 class="text-[#555] text-xs uppercase font-bold">其它</h3>
 
       <div class="flex flex-col gap-3">
-        
-      <button
-          type="button"
+
+        <button type="button"
           class="sys-btn w-full py-3 px-4 text-left border-2 border-[#2d2d30] font-bold uppercase tracking-wider shadow-[4px_4px_0px_rgba(0,0,0,0.1)] hover:translate-x-1 transition-transform"
           :class="isViewActive('about') ? 'bg-[#2d2d30] text-white' : 'bg-white text-[#2d2d30]'"
-          @click="setView('about')"
-        >
+          @click="setView('about')">
           [ 关于此站 ]
         </button>
       </div>
