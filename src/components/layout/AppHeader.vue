@@ -78,7 +78,7 @@ onUnmounted(() => {
     <div class="flex items-center gap-4">
       <div
         class="w-10 h-10 border-2 border-[#2d2d30] flex items-center justify-center bg-[#ff8800] text-white font-bold text-xl rounded-sm shadow-[2px_2px_0px_#2d2d30]">
-        A
+        H
       </div>
       <div class="hidden md:block">
         <h1 ref="titleRef" class="text-3xl tracking-[0.2em] font-bold text-[#2d2d30] uppercase">

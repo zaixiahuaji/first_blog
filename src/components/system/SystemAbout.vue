@@ -42,7 +42,7 @@ const markIconFailed = (link: FriendLink) => {
         <div class="text-sm text-[#555] leading-relaxed font-sharetech space-y-2 content-bold">
           <p>此站采用磁带未来主义的视觉风格——如果你刚好喜欢这种风格，欢迎随便逛逛。</p>
           <p>这种风格在美学上吸引了我，至于其背后的思潮，我无意深究，只是喜欢。</p>
-          <p>如果你仔细摸索的话，就能发现一个不显眼的页面入口，但不会对外开放</p>
+          <p>如果你仔细摸索的话，就能发现一个不显眼的页面入口，但不会对外开放。</p>
         </div>
       </div>
 
