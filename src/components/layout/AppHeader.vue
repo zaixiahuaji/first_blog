@@ -1,31 +1,51 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref, watch } from 'vue'
+import { onMounted, onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { usePostsStore } from '@/stores/posts'
-import { storeToRefs } from 'pinia'
 
 const router = useRouter()
 const postsStore = usePostsStore()
-const { searchQuery } = storeToRefs(postsStore)
 const searchInput = ref('')
 const isSearchFocused = ref(false)
 const isSemanticSearch = ref(false)
 
-// Debounce search
-let debounceTimer: number | undefined
-const handleSearchInput = () => {
-  if (debounceTimer) clearTimeout(debounceTimer)
-  debounceTimer = window.setTimeout(() => {
-    postsStore.setSearchQuery(searchInput.value, isSemanticSearch.value ? 'semantic' : 'keyword')
-  }, 500)
+const SEARCH_COOLDOWN_SEC = 3
+const isSearchCooldownActive = ref(false)
+const cooldownRemainingSec = ref(0)
+let cooldownTimer: number | undefined
+
+const startSearchCooldown = () => {
+  if (cooldownTimer) window.clearInterval(cooldownTimer)
+  isSearchCooldownActive.value = true
+  cooldownRemainingSec.value = SEARCH_COOLDOWN_SEC
+
+  cooldownTimer = window.setInterval(() => {
+    cooldownRemainingSec.value -= 1
+    if (cooldownRemainingSec.value <= 0) {
+      isSearchCooldownActive.value = false
+      cooldownRemainingSec.value = 0
+      if (cooldownTimer) window.clearInterval(cooldownTimer)
+      cooldownTimer = undefined
+    }
+  }, 1000)
 }
 
 const toggleSemanticSearch = () => {
   isSemanticSearch.value = !isSemanticSearch.value
-  // Re-trigger search immediately if there is input
-  if (searchInput.value) {
-    handleSearchInput()
+}
+
+const runSearch = () => {
+  const query = searchInput.value.trim()
+
+  if (!query) {
+    postsStore.setSearchQuery('')
+    return
   }
+
+  if (isSearchCooldownActive.value) return
+
+  postsStore.setSearchQuery(query, isSemanticSearch.value ? 'semantic' : 'keyword')
+  startSearchCooldown()
 }
 
 const clearSearch = () => {
@@ -69,7 +89,7 @@ onMounted(() => {
 onUnmounted(() => {
   if (clockTimer) window.clearInterval(clockTimer)
   if (glitchTimer) window.clearInterval(glitchTimer)
-  if (debounceTimer) clearTimeout(debounceTimer)
+  if (cooldownTimer) window.clearInterval(cooldownTimer)
 })
 </script>
 
@@ -91,19 +111,29 @@ onUnmounted(() => {
     <!-- Search Bar -->
     <div class="flex-1 max-w-md mx-4 relative group flex gap-2 h-10">
       <!-- Semantic Toggle Button -->
-      <button @click="toggleSemanticSearch"
-        class="h-full w-24 border-2 flex items-center justify-center font-bold text-xs transition-colors shrink-0"
-        :class="isSemanticSearch
-          ? 'bg-[#ff8800] border-[#ff8800] text-black shadow-[0_0_8px_#ff8800]'
-          : 'bg-white border-[#2d2d30] text-[#2d2d30] hover:bg-[#2d2d30] hover:text-white'" title="切换搜索模式">
-        {{ isSemanticSearch ? '语义搜索' : '精确搜索' }}
+      <button
+        type="button"
+        :disabled="isSearchCooldownActive"
+        @click="toggleSemanticSearch"
+        class="h-full w-24 border-2 flex items-center justify-center font-bold text-xs transition-colors shrink-0 disabled:opacity-60 disabled:cursor-not-allowed"
+        :class="
+          isSearchCooldownActive
+            ? 'bg-[#e5e7eb] border-[#9ca3af] text-[#6b7280]'
+            : isSemanticSearch
+              ? 'bg-[#ff8800] border-[#ff8800] text-black shadow-[0_0_8px_#ff8800]'
+              : 'bg-white border-[#2d2d30] text-[#2d2d30] hover:bg-[#2d2d30] hover:text-white'
+        "
+        title="切换搜索模式"
+      >
+        {{ isSearchCooldownActive ? `冷却 ${cooldownRemainingSec}s` : isSemanticSearch ? '语义搜索' : '精确搜索' }}
       </button>
 
       <div
         class="flex-1 flex items-center border-2 border-[#2d2d30] bg-[#f4f4f6] focus-within:bg-white transition-colors h-full"
         :class="{ 'shadow-[4px_4px_0px_#00a3cc] border-[#00a3cc]': isSearchFocused }">
-        <span class="pl-3 text-[#2d2d30] font-bold">></span>
-        <input v-model="searchInput" @input="handleSearchInput" @focus="isSearchFocused = true"
+        <!-- <span class="pl-3 text-[#2d2d30] font-bold">></span> -->
+        <span class="pl-3 text-[#ff8800] font-bold blink">></span>
+        <input v-model="searchInput" @keydown.enter.prevent="runSearch" @focus="isSearchFocused = true"
           @blur="isSearchFocused = false" type="text" :placeholder="isSemanticSearch ? '输入自然语言搜索...' : '搜索_数据...'"
           class="w-full bg-transparent border-none outline-none px-2 py-1.5 font-sharetech text-[#2d2d30] placeholder:text-[#999] uppercase" />
         <button v-if="searchInput" @click="clearSearch" class="px-2 text-[#2d2d30] hover:text-[#e62e2e] font-bold">

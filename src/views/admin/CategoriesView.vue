@@ -247,9 +247,9 @@ onMounted(async () => {
 
 <template>
   <div class="h-screen bg-[#0a0a0a] text-[#00ff00] font-sharetech flex flex-col overflow-hidden">
+
     <div class="fixed inset-0 crt-overlay z-50 pointer-events-none"></div>
     <div class="fixed inset-0 scan-line z-40 pointer-events-none"></div>
-
     <header
       class="border-b border-[#00ff00] p-4 flex justify-between items-center z-10 bg-[#0a0a0a] shrink-0"
     >
@@ -269,7 +269,7 @@ onMounted(async () => {
       <section class="border border-[#00ff00] p-6">
         <h2 class="text-lg font-bold uppercase mb-4">> 新建类别</h2>
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
-          <div class="lg:col-span-3 space-y-2">
+          <div class="lg:col-span-2 space-y-2">
             <label class="block text-xs uppercase opacity-80">slug (^[a-z0-9_]{1,12}$)</label>
             <input
               v-model="createForm.slug"
@@ -278,7 +278,7 @@ onMounted(async () => {
               placeholder="e.g. life"
             />
           </div>
-          <div class="lg:col-span-3 space-y-2">
+          <div class="lg:col-span-2 space-y-2">
             <label class="block text-xs uppercase opacity-80">名称</label>
             <input
               v-model="createForm.name"
@@ -294,22 +294,36 @@ onMounted(async () => {
               placeholder="一句话描述"
             />
           </div>
-          <div class="lg:col-span-2 grid grid-cols-2 gap-4">
-            <div class="space-y-2">
+          <div class="lg:col-span-3 grid grid-cols-3 gap-4">
+            <div class="space-y-2 col-span-1">
               <label class="block text-xs uppercase opacity-80">颜色</label>
-              <div class="flex items-center gap-2">
-                <select
-                  v-model="createForm.color"
-                  class="flex-1 bg-black border border-[#00ff00] p-2 text-[#00ff00] focus:outline-none font-sharetech"
+              <el-select
+                v-model="createForm.color"
+                popper-class="terminal-color-dropdown"
+                class="terminal-color-select"
+                :teleported="false"
+              >
+                <template #label="{ label }">
+                  <div class="flex items-center gap-2 w-full">
+                    <span class="font-mono text-xs">{{ String(label).toUpperCase() }}</span>
+                    <span class="terminal-color-swatch ml-auto" :style="{ backgroundColor: createForm.color }"></span>
+                  </div>
+                </template>
+
+                <el-option
+                  v-for="color in categoriesStore.themeColors"
+                  :key="color"
+                  :label="color.toUpperCase()"
+                  :value="color"
                 >
-                  <option v-for="color in categoriesStore.themeColors" :key="color" :value="color">
-                    {{ color }}
-                  </option>
-                </select>
-                <div class="w-4 h-4 border border-[#00ff00]" :style="{ backgroundColor: createForm.color }"></div>
-              </div>
+                  <div class="flex items-center justify-between gap-3">
+                    <span class="font-mono text-xs">{{ color.toUpperCase() }}</span>
+                    <span class="terminal-color-swatch" :style="{ backgroundColor: color }"></span>
+                  </div>
+                </el-option>
+              </el-select>
             </div>
-            <div class="space-y-2">
+            <div class="space-y-2 ">
               <label class="block text-xs uppercase opacity-80">排序</label>
               <input
                 v-model.number="createForm.sortOrder"
@@ -442,19 +456,35 @@ onMounted(async () => {
 
                 <td class="p-4">
                   <div v-if="editingId === category.id" class="flex items-center gap-2">
-                    <select
+                    <el-select
                       v-model="editForm.color"
-                      class="flex-1 bg-black border border-[#00ff00] p-2 text-[#00ff00] focus:outline-none font-sharetech"
+                      popper-class="terminal-color-dropdown"
+                      class="terminal-color-select"
+                      :teleported="false"
                     >
-                      <option v-for="color in categoriesStore.themeColors" :key="color" :value="color">
-                        {{ color }}
-                      </option>
-                    </select>
-                    <div class="w-4 h-4 border border-[#00ff00]" :style="{ backgroundColor: editForm.color }"></div>
+                      <template #label="{ label }">
+                        <div class="flex items-center gap-2 w-full">
+                          <span class="font-mono text-xs">{{ String(label).toUpperCase() }}</span>
+                          <span class="terminal-color-swatch ml-auto" :style="{ backgroundColor: editForm.color }"></span>
+                        </div>
+                      </template>
+
+                      <el-option
+                        v-for="color in categoriesStore.themeColors"
+                        :key="color"
+                        :label="color.toUpperCase()"
+                        :value="color"
+                      >
+                        <div class="flex items-center justify-between gap-3">
+                          <span class="font-mono text-xs">{{ color.toUpperCase() }}</span>
+                          <span class="terminal-color-swatch" :style="{ backgroundColor: color }"></span>
+                        </div>
+                      </el-option>
+                    </el-select>
                   </div>
                   <div v-else class="flex items-center gap-2">
                     <div class="w-4 h-4 border border-[#00ff00]" :style="{ backgroundColor: category.color }"></div>
-                    <span class="font-mono text-xs">{{ category.color }}</span>
+                    <span class="font-mono text-xs">{{ category.color.toUpperCase() }}</span>
                   </div>
                 </td>
 
@@ -529,5 +559,66 @@ onMounted(async () => {
   background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%),
     linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
   background-size: 100% 2px, 3px 100%;
+}
+
+.terminal-color-swatch {
+  width: 14px;
+  height: 14px;
+  border: 1px solid #00ff00;
+  display: inline-block;
+}
+
+:deep(.terminal-color-select) {
+  width: 100%;
+}
+
+:deep(.terminal-color-select .el-select__wrapper) {
+  background-color: #000;
+  box-shadow: none;
+  border-radius: 0;
+  border: 1px solid #00ff00;
+  min-height: 40px;
+  padding: 0 10px;
+}
+
+:deep(.terminal-color-select .el-select__wrapper.is-focused) {
+  box-shadow: 0 0 0 1px #00ff00 inset;
+}
+
+:deep(.terminal-color-select .el-select__selected-item) {
+  color: #00ff00;
+}
+
+:deep(.terminal-color-select .el-select__caret) {
+  color: #00ff00;
+}
+
+:deep(.terminal-color-select .el-select__prefix) {
+  margin-right: 8px;
+}
+
+:deep(.terminal-color-dropdown) {
+  border: 1px solid #00ff00;
+  border-radius: 0;
+  background: #000;
+  box-shadow: none;
+}
+
+:deep(.terminal-color-dropdown .el-select-dropdown__item) {
+  color: #00ff00;
+  background: #000;
+  display:flex;
+  align-items:center;
+}
+
+:deep(.terminal-color-dropdown .el-select-dropdown__item.is-hovering),
+:deep(.terminal-color-dropdown .el-select-dropdown__item:hover) {
+  background: rgba(0, 255, 0, 0.12);
+}
+
+:deep(.terminal-color-dropdown .el-select-dropdown__item.is-selected) {
+  background: rgba(0, 255, 0, 0.2);
+  color: #00ff00;
+  font-weight: 700;
 }
 </style>

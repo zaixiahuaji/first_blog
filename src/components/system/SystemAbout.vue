@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import CrtEffects from '@/components/layout/CrtEffects.vue'
 
 type FriendLinkIcon = { src: string; alt?: string }
 type FriendLink = { name: string; href: string; icon?: FriendLinkIcon }

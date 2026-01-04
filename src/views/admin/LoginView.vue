@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { nextTick, ref } from 'vue'
+import { nextTick, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import AdminBootLoader from '@/components/intro/AdminBootLoader.vue'
@@ -15,10 +15,44 @@ const inviteCode = ref('')
 const isLoading = ref(false)
 const error = ref('')
 const registerSuccessOpen = ref(false)
-const showIntro = ref(true)
 const usernameInput = ref<HTMLInputElement | null>(null)
 
 const INVITE_CODE_REGEX = /^[A-Z0-9]{4}-[A-Z0-9]{4}$/
+const INTRO_COOLDOWN_MS = 60_000
+const INTRO_COOLDOWN_KEY = 'huaji_intro_admin_last_shown_at'
+
+const readLastIntroShownAt = () => {
+  try {
+    const raw = localStorage.getItem(INTRO_COOLDOWN_KEY)
+    if (!raw) return 0
+    const value = Number(raw)
+    return Number.isFinite(value) ? value : 0
+  } catch {
+    return 0
+  }
+}
+
+const shouldShowIntro = () => {
+  const lastShownAt = readLastIntroShownAt()
+  if (!lastShownAt) return true
+  return Date.now() - lastShownAt >= INTRO_COOLDOWN_MS
+}
+
+const markIntroShownNow = () => {
+  try {
+    localStorage.setItem(INTRO_COOLDOWN_KEY, String(Date.now()))
+  } catch {
+    // ignore
+  }
+}
+
+const showIntro = ref(shouldShowIntro())
+
+const focusUsername = () => {
+  nextTick(() => {
+    usernameInput.value?.focus()
+  })
+}
 
 const toggleMode = () => {
   isRegisterMode.value = !isRegisterMode.value
@@ -109,11 +143,16 @@ const handleSubmit = () => {
 }
 
 const handleIntroDone = () => {
+  markIntroShownNow()
   showIntro.value = false
-  nextTick(() => {
-    usernameInput.value?.focus()
-  })
+  focusUsername()
 }
+
+onMounted(() => {
+  if (!showIntro.value) {
+    focusUsername()
+  }
+})
 </script>
 
 <template>

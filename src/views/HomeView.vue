@@ -32,7 +32,39 @@ const { activeView } = storeToRefs(uiStore)
 
 const metricsStore = useMetricsStore()
 
-const showIntro = ref(true)
+const INTRO_COOLDOWN_MS = 60_000
+const INTRO_COOLDOWN_KEY = 'huaji_intro_home_last_shown_at'
+
+const readLastIntroShownAt = () => {
+  try {
+    const raw = localStorage.getItem(INTRO_COOLDOWN_KEY)
+    if (!raw) return 0
+    const value = Number(raw)
+    return Number.isFinite(value) ? value : 0
+  } catch {
+    return 0
+  }
+}
+
+const shouldShowIntro = () => {
+  const lastShownAt = readLastIntroShownAt()
+  if (!lastShownAt) return true
+  return Date.now() - lastShownAt >= INTRO_COOLDOWN_MS
+}
+
+const markIntroShownNow = () => {
+  try {
+    localStorage.setItem(INTRO_COOLDOWN_KEY, String(Date.now()))
+  } catch {
+    // ignore
+  }
+}
+
+const showIntro = ref(shouldShowIntro())
+const handleIntroDone = () => {
+  markIntroShownNow()
+  showIntro.value = false
+}
 
 onMounted(() => {
   uiStore.applyToBody()
@@ -50,7 +82,7 @@ watch(activeView, (view) => {
 </script>
 
 <template>
-  <BootLoader v-if="showIntro" variant="hardcore" :duration-ms="3000" @done="showIntro = false" />
+  <BootLoader v-if="showIntro" variant="hardcore" :duration-ms="3000" @done="handleIntroDone" />
 
   <Transition
     enter-active-class="transition-opacity duration-300 ease-out"
