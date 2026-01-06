@@ -14,7 +14,7 @@ watchEffect(() => {
 </script>
 
 <template>
-  <el-config-provider :locale="zhCn" :z-index="35">
+  <el-config-provider :locale="zhCn" :z-index="50">
     <RouterView />
   </el-config-provider>
 </template>

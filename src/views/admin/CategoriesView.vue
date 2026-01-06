@@ -4,6 +4,8 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useCategoriesStore, type AdminCategory } from '@/stores/categories'
 import type { CreateCategoryDto, UpdateCategoryDto } from '@/api/generated/model'
+import { ElMessage } from 'element-plus'
+import type { FormInstance, FormRules } from 'element-plus'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -34,16 +36,30 @@ const createForm = reactive<{
   name: string
   description: string
   color: string
-  sortOrder: number | null
+  sortOrder: number | undefined
   isActive: boolean
 }>({
   slug: '',
   name: '',
   description: '',
   color: categoriesStore.themeColors[0] ?? '#ff8800',
-  sortOrder: null,
+  sortOrder: undefined,
   isActive: true,
 })
+
+const createFormRef = ref<FormInstance>()
+const createRules: FormRules = {
+  slug: [
+    { required: true, message: '请输入 slug', trigger: 'blur' },
+    {
+      pattern: /^[a-z0-9_]{1,12}$/,
+      message: 'slug 仅允许 a-z / 0-9 / _，最长 12 位',
+      trigger: 'blur',
+    },
+  ],
+  name: [{ required: true, message: '请输入名称', trigger: 'blur' }],
+  color: [{ required: true, message: '请选择颜色', trigger: 'change' }],
+}
 
 const isAdminLike = computed(
   () => authStore.userRole === 'admin' || authStore.userRole === 'super_admin',
@@ -56,6 +72,14 @@ const normalizeSlug = (value: string) =>
     .toLowerCase()
     .replace(/[^a-z0-9_]/g, '')
     .slice(0, 12)
+
+watch(
+  () => createForm.slug,
+  (next) => {
+    const normalized = normalizeSlug(next)
+    if (normalized !== next) createForm.slug = normalized
+  },
+)
 
 const refresh = async () => {
   await categoriesStore.fetchAdminCategories()
@@ -130,9 +154,10 @@ const saveOrder = async () => {
       orderedIds: localCategories.value.map((c) => c.id),
     })
     await refresh()
+    ElMessage.success('排序已保存')
   } catch (e) {
     console.error('Reorder categories failed:', e)
-    alert('排序保存失败')
+    ElMessage.error('排序保存失败')
   }
 }
 
@@ -150,6 +175,11 @@ const cancelEdit = () => {
 }
 
 const saveEdit = async (category: AdminCategory) => {
+  if (!editForm.name.trim()) {
+    ElMessage.warning('名称不能为空')
+    return
+  }
+
   const payload: UpdateCategoryDto = {
     name: editForm.name.trim(),
     description: (editForm.description.trim() || undefined) as any,
@@ -162,45 +192,57 @@ const saveEdit = async (category: AdminCategory) => {
     await categoriesStore.updateCategory(category.id, payload as any)
     editingId.value = null
     await refresh()
+    ElMessage.success('已更新')
   } catch (e) {
     console.error('Update category failed:', e)
-    alert('更新失败')
+    ElMessage.error('更新失败')
   }
 }
 
-const toggleActive = async (category: AdminCategory) => {
+const activeUpdatingId = ref<string | null>(null)
+
+const setActive = async (category: AdminCategory, nextIsActive: boolean) => {
+  if (activeUpdatingId.value === category.id) return
+  if (category.isActive === nextIsActive) return
+
+  const prev = category.isActive
+  category.isActive = nextIsActive
+  activeUpdatingId.value = category.id
+
   try {
-    await categoriesStore.updateCategory(category.id, { isActive: !category.isActive } as any)
+    await categoriesStore.updateCategory(category.id, { isActive: nextIsActive } as any)
     await refresh()
+    ElMessage.success('状态已更新')
   } catch (e) {
+    category.isActive = prev
     console.error('Toggle category failed:', e)
-    alert('操作失败')
+    ElMessage.error('操作失败')
+  } finally {
+    if (activeUpdatingId.value === category.id) activeUpdatingId.value = null
   }
 }
 
 const removeCategory = async (category: AdminCategory) => {
   if (category.isSystem) return
 
-  const ok = confirm(
-    `确定删除类别「${category.name}」(${category.slug})？\n该类别下的文章将迁移到 other。此操作不可逆。`,
-  )
-  if (!ok) return
-
   try {
     await categoriesStore.deleteCategory(category.id)
     await refresh()
+    ElMessage.success('已删除')
   } catch (e) {
     console.error('Delete category failed:', e)
-    alert('删除失败')
+    ElMessage.error('删除失败')
   }
 }
 
 const createCategory = async () => {
-  const slug = normalizeSlug(createForm.slug)
-  if (!slug || !createForm.name.trim()) {
-    alert('请填写 slug 和名称')
+  const isValid = await createFormRef.value?.validate().catch(() => false)
+  if (!isValid) {
+    ElMessage.warning('请检查表单字段')
     return
   }
+
+  const slug = normalizeSlug(createForm.slug)
 
   const sortOrder =
     typeof createForm.sortOrder === 'number' && Number.isFinite(createForm.sortOrder)
@@ -218,16 +260,12 @@ const createCategory = async () => {
 
   try {
     await categoriesStore.createCategory(payload as any)
-    createForm.slug = ''
-    createForm.name = ''
-    createForm.description = ''
-    createForm.color = categoriesStore.themeColors[0] ?? '#ff8800'
-    createForm.sortOrder = null
-    createForm.isActive = true
+    createFormRef.value?.resetFields()
     await refresh()
+    ElMessage.success('创建成功')
   } catch (e) {
     console.error('Create category failed:', e)
-    alert('创建失败（可能是 slug 冲突或格式不合法）')
+    ElMessage.error('创建失败（可能是 slug 冲突或格式不合法）')
   }
 }
 
@@ -268,86 +306,74 @@ onMounted(async () => {
     <main class="flex-1 p-8 overflow-y-auto z-10 relative min-h-0 space-y-10">
       <section class="border border-[#00ff00] p-6">
         <h2 class="text-lg font-bold uppercase mb-4">> 新建类别</h2>
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
-          <div class="lg:col-span-2 space-y-2">
-            <label class="block text-xs uppercase opacity-80">slug (^[a-z0-9_]{1,12}$)</label>
-            <input
-              v-model="createForm.slug"
-              @input="createForm.slug = normalizeSlug(createForm.slug)"
-              class="w-full bg-black border border-[#00ff00] p-2 text-[#00ff00] focus:outline-none font-sharetech"
-              placeholder="e.g. life"
-            />
-          </div>
-          <div class="lg:col-span-2 space-y-2">
-            <label class="block text-xs uppercase opacity-80">名称</label>
-            <input
-              v-model="createForm.name"
-              class="w-full bg-black border border-[#00ff00] p-2 text-[#00ff00] focus:outline-none font-sharetech"
-              placeholder="显示名称"
-            />
-          </div>
-          <div class="lg:col-span-4 space-y-2">
-            <label class="block text-xs uppercase opacity-80">描述 (可选)</label>
-            <input
-              v-model="createForm.description"
-              class="w-full bg-black border border-[#00ff00] p-2 text-[#00ff00] focus:outline-none font-sharetech"
-              placeholder="一句话描述"
-            />
-          </div>
-          <div class="lg:col-span-3 grid grid-cols-3 gap-4">
-            <div class="space-y-2 col-span-1">
-              <label class="block text-xs uppercase opacity-80">颜色</label>
-              <el-select
-                v-model="createForm.color"
-                popper-class="terminal-color-dropdown"
-                class="terminal-color-select"
-                :teleported="false"
-              >
-                <template #label="{ label }">
-                  <div class="flex items-center gap-2 w-full">
-                    <span class="font-mono text-xs">{{ String(label).toUpperCase() }}</span>
-                    <span class="terminal-color-swatch ml-auto" :style="{ backgroundColor: createForm.color }"></span>
-                  </div>
-                </template>
+        <el-form
+          ref="createFormRef"
+          :model="createForm"
+          :rules="createRules"
+          label-position="top"
+          @submit.prevent
+        >
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+            <el-form-item class="lg:col-span-2" prop="slug" label="slug (^[a-z0-9_]{1,12}$)">
+              <el-input v-model="createForm.slug" placeholder="e.g. life" maxlength="12" clearable />
+            </el-form-item>
 
-                <el-option
-                  v-for="color in categoriesStore.themeColors"
-                  :key="color"
-                  :label="color.toUpperCase()"
-                  :value="color"
+            <el-form-item class="lg:col-span-2" prop="name" label="名称">
+              <el-input v-model="createForm.name" placeholder="显示名称" clearable />
+            </el-form-item>
+
+            <el-form-item class="lg:col-span-4" prop="description" label="描述 (可选)">
+              <el-input v-model="createForm.description" placeholder="一句话描述" clearable />
+            </el-form-item>
+
+            <div class="lg:col-span-3 grid grid-cols-3 gap-4">
+              <el-form-item class="col-span-2" prop="color" label="颜色">
+                <el-select
+                  v-model="createForm.color"
+                  popper-class="terminal-color-dropdown"
+                  class="terminal-color-select"
+                  :teleported="false"
                 >
-                  <div class="flex items-center justify-between gap-3">
-                    <span class="font-mono text-xs">{{ color.toUpperCase() }}</span>
-                    <span class="terminal-color-swatch" :style="{ backgroundColor: color }"></span>
-                  </div>
-                </el-option>
-              </el-select>
-            </div>
-            <div class="space-y-2 ">
-              <label class="block text-xs uppercase opacity-80">排序</label>
-              <input
-                v-model.number="createForm.sortOrder"
-                type="number"
-                min="0"
-                class="w-full bg-black border border-[#00ff00] p-2 text-[#00ff00] focus:outline-none font-sharetech"
-                placeholder="0"
-              />
+                  <template #label="{ label }">
+                    <div class="flex items-center gap-2 w-full">
+                      <span class="font-mono text-xs">{{ String(label).toUpperCase() }}</span>
+                      <span class="terminal-color-swatch ml-auto" :style="{ backgroundColor: createForm.color }"></span>
+                    </div>
+                  </template>
+
+                  <el-option
+                    v-for="color in categoriesStore.themeColors"
+                    :key="color"
+                    :label="color.toUpperCase()"
+                    :value="color"
+                  >
+                    <div class="flex items-center justify-between gap-3">
+                      <span class="font-mono text-xs">{{ color.toUpperCase() }}</span>
+                      <span class="terminal-color-swatch" :style="{ backgroundColor: color }"></span>
+                    </div>
+                  </el-option>
+                </el-select>
+              </el-form-item>
+
+              <el-form-item class="col-span-1" prop="sortOrder" label="排序">
+                <el-input-number
+                  v-model="createForm.sortOrder"
+                  :min="0"
+                  :controls="false"
+                  class="w-full"
+                />
+              </el-form-item>
             </div>
           </div>
-        </div>
 
-        <div class="mt-4 flex items-center justify-between">
-          <label class="flex items-center gap-2 text-xs uppercase opacity-80">
-            <input v-model="createForm.isActive" type="checkbox" class="accent-[#00ff00]" />
-            启用
-          </label>
-          <button
-            @click="createCategory"
-            class="px-4 py-2 border border-[#00ff00] hover:bg-[#00ff00] hover:text-black transition-colors uppercase"
-          >
-            创建
-          </button>
-        </div>
+          <div class="mt-2 flex items-center justify-between">
+            <label class="flex items-center gap-2 text-xs uppercase opacity-80">
+              <input v-model="createForm.isActive" type="checkbox" class="accent-[#00ff00]" />
+              启用
+            </label>
+            <el-button type="primary" @click="createCategory">创建</el-button>
+          </div>
+        </el-form>
       </section>
 
       <section class="border border-[#00ff00]">
@@ -370,11 +396,22 @@ onMounted(async () => {
           </div>
         </div>
 
-        <div v-if="loading" class="p-8 text-center text-xl animate-pulse">>> 正在加载...</div>
-        <div v-else-if="error" class="p-6 text-red-400 border-t border-[#00ff00]">错误：{{ error }}</div>
+        <div
+          class="w-full"
+          v-loading="loading"
+          element-loading-text="加载中..."
+          element-loading-background="rgba(0,0,0,0.6)"
+        >
+          <el-alert
+            v-if="error"
+            class="m-4"
+            type="error"
+            show-icon
+            :closable="false"
+            :title="`错误：${error}`"
+          />
 
-        <div v-else class="w-full">
-          <table class="w-full text-left border-collapse">
+          <table v-else class="w-full text-left border-collapse">
             <thead>
               <tr class="border-b border-[#00ff00] bg-[#00ff00]/10">
                 <th class="p-4 font-bold uppercase w-16">#</th>
@@ -428,22 +465,16 @@ onMounted(async () => {
 
                 <td class="p-4">
                   <div v-if="editingId === category.id" class="space-y-2">
-                    <input
-                      v-model="editForm.name"
-                      class="w-full bg-black border border-[#00ff00] p-2 text-[#00ff00] focus:outline-none font-sharetech"
-                    />
-                    <input
-                      v-model="editForm.description"
-                      class="w-full bg-black border border-[#00ff00] p-2 text-[#00ff00] focus:outline-none font-sharetech"
-                      placeholder="描述 (可选)"
-                    />
+                    <el-input v-model="editForm.name" clearable />
+                    <el-input v-model="editForm.description" placeholder="描述 (可选)" clearable />
                     <div class="flex items-center gap-2">
                       <span class="text-xs opacity-60 uppercase shrink-0">sortOrder</span>
-                      <input
+                      <el-input-number
                         v-model.number="editForm.sortOrder"
-                        type="number"
-                        min="0"
-                        class="w-28 bg-black border border-[#00ff00] p-1 text-[#00ff00] focus:outline-none font-sharetech text-xs"
+                        :min="0"
+                        :controls="false"
+                        size="small"
+                        class="w-28"
                       />
                     </div>
                   </div>
@@ -498,8 +529,10 @@ onMounted(async () => {
                     />
                     <button
                       v-else
-                      @click="toggleActive(category)"
-                      class="px-3 py-1 border border-[#00ff00] hover:bg-[#00ff00] hover:text-black transition-colors uppercase text-xs"
+                      type="button"
+                      :disabled="activeUpdatingId === category.id"
+                      @click="setActive(category, !category.isActive)"
+                      class="px-3 py-1 border border-[#00ff00] hover:bg-[#00ff00] hover:text-black transition-colors uppercase text-xs disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-[#00ff00]"
                     >
                       {{ category.isActive ? 'ON' : 'OFF' }}
                     </button>
@@ -528,13 +561,26 @@ onMounted(async () => {
                     >
                       EDIT
                     </button>
-                    <button
+
+                    <el-popconfirm
                       v-if="!category.isSystem"
-                      @click="removeCategory(category)"
-                      class="text-red-400 hover:bg-red-500 hover:text-black px-2 transition-colors uppercase"
+                      :title="`确定删除类别「${category.name}」(${category.slug})？\n该类别下的文章将迁移到 other。此操作不可逆。`"
+                      confirm-button-text="删除"
+                      cancel-button-text="取消"
+                      cancel-button-type="default"
+                      confirm-button-type="danger"
+                      width="320"
+                      @confirm="removeCategory(category)"
                     >
-                      DEL
-                    </button>
+                      <template #reference>
+                        <button
+                          type="button"
+                          class="text-red-400 hover:bg-red-500 hover:text-black px-2 transition-colors uppercase"
+                        >
+                          DEL
+                        </button>
+                      </template>
+                    </el-popconfirm>
                     <span v-else class="text-xs opacity-60">SYSTEM_LOCK</span>
                   </template>
                 </td>

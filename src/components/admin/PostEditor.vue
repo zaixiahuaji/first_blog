@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import { ref, watch, computed, nextTick } from 'vue'
+import { computed, nextTick, onBeforeUnmount, reactive, ref, unref, watch } from 'vue'
 import type { PostItem } from '@/stores/posts'
 import { useCategoriesStore } from '@/stores/categories'
 import { useAuthStore } from '@/stores/auth'
 import { getAdminMedia } from '@/api/generated/admin-media/admin-media'
+import { ElMessage } from 'element-plus'
+import type { FormInstance, FormRules, InputInstance } from 'element-plus'
 
 const props = defineProps<{
   isOpen: boolean
@@ -23,13 +25,42 @@ const isAdminLike = computed(
   () => authStore.userRole === 'admin' || authStore.userRole === 'super_admin',
 )
 
-const formData = ref<Partial<PostItem>>({
+const formData = reactive<Partial<PostItem>>({
   title: '',
   category: 'other',
   date: '',
   excerpt: '',
   content: '',
 })
+
+const formRef = ref<FormInstance>()
+
+const rules: FormRules = {
+  title: [{ required: true, message: '请输入标题', trigger: 'blur' }],
+  category: [{ required: true, message: '请选择分类', trigger: 'change' }],
+  date: [
+    { required: true, message: '请输入日期', trigger: 'change' },
+    {
+      validator: (_rule, value: unknown, callback) => {
+        const raw = String(value ?? '').trim()
+        if (!raw) return callback(new Error('请输入日期'))
+        const match = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/)
+        if (!match) return callback(new Error('日期格式应为 YYYY-MM-DD'))
+
+        const year = Number(match[1])
+        const month = Number(match[2])
+        const day = Number(match[3])
+        if (!year || month < 1 || month > 12) return callback(new Error('日期不合法'))
+        const maxDay = new Date(year, month, 0).getDate()
+        if (day < 1 || day > maxDay) return callback(new Error('日期不合法'))
+        return callback()
+      },
+      trigger: 'change',
+    },
+  ],
+  excerpt: [{ required: true, message: '请输入摘要', trigger: 'blur' }],
+  content: [{ required: true, message: '请输入正文内容', trigger: 'blur' }],
+}
 
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024
 const ALLOWED_IMAGE_TYPES = new Set([
@@ -40,15 +71,89 @@ const ALLOWED_IMAGE_TYPES = new Set([
 ])
 
 const fileInputRef = ref<HTMLInputElement | null>(null)
-const contentInputRef = ref<HTMLTextAreaElement | null>(null)
+const contentInputRef = ref<InputInstance>()
 const isUploadingImage = ref(false)
 const uploadError = ref('')
+
+type TextSelection = { start: number; end: number }
+const lastContentSelection = ref<TextSelection | null>(null)
+
+const getContentTextarea = (): HTMLTextAreaElement | undefined => {
+  const instance = contentInputRef.value as any
+  const textareaOrRef = instance?.textarea ?? instance?.ref
+  const resolved = unref(textareaOrRef)
+  return resolved instanceof HTMLTextAreaElement ? resolved : undefined
+}
+
+const handleDocumentSelectionChange = () => {
+  if (typeof document === 'undefined') return
+  const textarea = getContentTextarea()
+  if (!textarea) return
+  if (document.activeElement !== textarea) return
+
+  lastContentSelection.value = {
+    start: textarea.selectionStart ?? 0,
+    end: textarea.selectionEnd ?? textarea.selectionStart ?? 0,
+  }
+}
+
+let isTrackingContentSelection = false
+const startContentSelectionTracking = () => {
+  if (typeof document === 'undefined') return
+  if (isTrackingContentSelection) return
+  document.addEventListener('selectionchange', handleDocumentSelectionChange)
+  isTrackingContentSelection = true
+}
+
+const stopContentSelectionTracking = () => {
+  if (typeof document === 'undefined') return
+  if (!isTrackingContentSelection) return
+  document.removeEventListener('selectionchange', handleDocumentSelectionChange)
+  isTrackingContentSelection = false
+}
+
+const CONTENT_TEXTAREA_EVENTS = ['keyup', 'mouseup', 'click', 'select'] as const
+let boundContentTextarea: HTMLTextAreaElement | null = null
+const bindContentTextareaSelectionEvents = () => {
+  const textarea = getContentTextarea()
+  if (!textarea) return
+  if (boundContentTextarea === textarea) return
+
+  if (boundContentTextarea) {
+    for (const eventName of CONTENT_TEXTAREA_EVENTS) {
+      boundContentTextarea.removeEventListener(eventName, captureContentSelection)
+    }
+  }
+
+  boundContentTextarea = textarea
+  for (const eventName of CONTENT_TEXTAREA_EVENTS) {
+    textarea.addEventListener(eventName, captureContentSelection)
+  }
+}
+
+const unbindContentTextareaSelectionEvents = () => {
+  if (!boundContentTextarea) return
+  for (const eventName of CONTENT_TEXTAREA_EVENTS) {
+    boundContentTextarea.removeEventListener(eventName, captureContentSelection)
+  }
+  boundContentTextarea = null
+}
+
+const captureContentSelection = () => {
+  const textarea = getContentTextarea()
+  if (!textarea) return
+
+  lastContentSelection.value = {
+    start: textarea.selectionStart ?? 0,
+    end: textarea.selectionEnd ?? textarea.selectionStart ?? 0,
+  }
+}
 
 const showExternalImage = ref(false)
 const externalImageUrl = ref('')
 const externalImageAlt = ref('')
 const externalImageError = ref('')
-const externalImageUrlRef = ref<HTMLInputElement | null>(null)
+const externalImageUrlRef = ref<InputInstance>()
 type UploadResult = { url: string; key: string }
 
 // Date parts
@@ -59,11 +164,44 @@ const dateDay = ref('')
 // Update formData.date whenever parts change
 const updateDate = () => {
   if (dateYear.value && dateMonth.value && dateDay.value) {
-    formData.value.date = `${dateYear.value}-${dateMonth.value.padStart(2, '0')}-${dateDay.value.padStart(2, '0')}`
+    formData.date = `${dateYear.value}-${dateMonth.value.padStart(2, '0')}-${dateDay.value.padStart(2, '0')}`
   } else {
-    formData.value.date = ''
+    formData.date = ''
   }
 }
+
+const normalizeDatePart = (raw: string, maxLen: number) =>
+  raw.replace(/[^\d]/g, '').slice(0, maxLen)
+
+watch(
+  dateYear,
+  (next) => {
+    const normalized = normalizeDatePart(next, 4)
+    if (normalized !== next) dateYear.value = normalized
+    updateDate()
+  },
+  { immediate: true },
+)
+
+watch(
+  dateMonth,
+  (next) => {
+    const normalized = normalizeDatePart(next, 2)
+    if (normalized !== next) dateMonth.value = normalized
+    updateDate()
+  },
+  { immediate: true },
+)
+
+watch(
+  dateDay,
+  (next) => {
+    const normalized = normalizeDatePart(next, 2)
+    if (normalized !== next) dateDay.value = normalized
+    updateDate()
+  },
+  { immediate: true },
+)
 
 const buildAltFromFilename = (filename: string) => {
   const trimmed = filename.trim()
@@ -78,16 +216,16 @@ const buildImageMarkdown = (url: string, altText?: string) => {
 }
 
 const insertMarkdownAtCursor = (markdown: string) => {
-  const textarea = contentInputRef.value
-  const current = formData.value.content ?? ''
+  const textarea = getContentTextarea()
+  const current = formData.content ?? ''
 
-  if (!textarea) {
-    formData.value.content = `${current}${markdown}`
-    return
-  }
+  const cached = lastContentSelection.value
+  const rawStart = cached?.start ?? textarea?.selectionStart ?? 0
+  const rawEnd = cached?.end ?? textarea?.selectionEnd ?? rawStart
 
-  const start = textarea.selectionStart ?? 0
-  const end = textarea.selectionEnd ?? 0
+  const start = Math.min(Math.max(rawStart, 0), current.length)
+  const end = Math.min(Math.max(rawEnd, start), current.length)
+
   const before = current.slice(0, start)
   const after = current.slice(end)
 
@@ -95,12 +233,17 @@ const insertMarkdownAtCursor = (markdown: string) => {
   const needsTrailingBreak = after.length > 0 && !after.startsWith('\n')
   const insertText = `${needsLeadingBreak ? '\n' : ''}${markdown}${needsTrailingBreak ? '\n' : ''}`
 
-  formData.value.content = `${before}${insertText}${after}`
+  formData.content = `${before}${insertText}${after}`
 
   nextTick(() => {
-    textarea.focus()
+    const nextTextarea = getContentTextarea()
     const caret = start + insertText.length
-    textarea.setSelectionRange(caret, caret)
+
+    lastContentSelection.value = { start: caret, end: caret }
+
+    if (!nextTextarea) return
+    contentInputRef.value?.focus()
+    nextTextarea.setSelectionRange(caret, caret)
   })
 }
 
@@ -192,11 +335,30 @@ const ensureCategoriesLoaded = async () => {
 watch(
   () => props.isOpen,
   (open) => {
-    if (!open) return
+    if (!open) {
+      showExternalImage.value = false
+      uploadError.value = ''
+      externalImageError.value = ''
+      formRef.value?.clearValidate()
+      stopContentSelectionTracking()
+      unbindContentTextareaSelectionEvents()
+      return
+    }
+
     ensureCategoriesLoaded()
+    nextTick(() => {
+      formRef.value?.clearValidate()
+      startContentSelectionTracking()
+      bindContentTextareaSelectionEvents()
+    })
   },
   { immediate: true },
 )
+
+onBeforeUnmount(() => {
+  stopContentSelectionTracking()
+  unbindContentTextareaSelectionEvents()
+})
 
 const getDefaultCategorySlug = () => {
   const other = categoriesStore.activeCategories.find((c) => c.slug === 'other')
@@ -227,7 +389,7 @@ const categoryOptions = computed<CategoryOption[]>(() => {
         isActive: true,
       }))
 
-  const selected = formData.value.category
+  const selected = formData.category
   if (selected && !base.some((c) => c.slug === selected)) {
     base.push({
       slug: selected,
@@ -238,7 +400,7 @@ const categoryOptions = computed<CategoryOption[]>(() => {
   }
 
   if (!selected && base.length > 0) {
-    formData.value.category = getDefaultCategorySlug()
+    formData.category = getDefaultCategorySlug()
   }
 
   return [...base].sort((a, b) => a.sortOrder - b.sortOrder)
@@ -248,16 +410,20 @@ watch(
   () => props.post,
   (newPost) => {
     if (newPost) {
-      formData.value = {
+      Object.assign(formData, {
         ...newPost,
         category: newPost.category || getDefaultCategorySlug(),
-      }
-      // Split existing date
-      const date = new Date(newPost.date)
-      if (!isNaN(date.getTime())) {
-        dateYear.value = date.getFullYear().toString()
-        dateMonth.value = (date.getMonth() + 1).toString().padStart(2, '0')
-        dateDay.value = date.getDate().toString().padStart(2, '0')
+      })
+
+      const match = (newPost.date || '').match(/^(\d{4})-(\d{2})-(\d{2})$/)
+      if (match) {
+        dateYear.value = match[1] ?? ''
+        dateMonth.value = match[2] ?? ''
+        dateDay.value = match[3] ?? ''
+      } else {
+        dateYear.value = ''
+        dateMonth.value = ''
+        dateDay.value = ''
       }
     } else {
       // Defaults for new post
@@ -266,121 +432,130 @@ watch(
       dateMonth.value = (today.getMonth() + 1).toString().padStart(2, '0')
       dateDay.value = today.getDate().toString().padStart(2, '0')
       
-      formData.value = {
+      Object.assign(formData, {
         title: '',
         category: getDefaultCategorySlug(),
         excerpt: '',
         content: '',
-      }
-      updateDate() // Set initial date
+      })
     }
   },
   { immediate: true },
 )
 
-const handleSubmit = () => {
-  updateDate() // Ensure date is synced
-  emit('save', formData.value)
+const handleSubmit = async () => {
+  updateDate()
+
+  const form = formRef.value
+  if (form) {
+    try {
+      await form.validate()
+    } catch {
+      ElMessage.warning('请检查表单字段')
+      return
+    }
+  }
+
+  emit('save', { ...formData })
 }
 </script>
 
 <template>
-  <div v-if="isOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4">
-    <!-- Backdrop -->
-    <div class="absolute inset-0 bg-black/80 backdrop-blur-sm" @click="emit('close')"></div>
-
-    <!-- Modal -->
-    <div
-      class="relative w-full max-w-5xl bg-[#0a0a0a] border-2 border-[#00ff00] shadow-[0_0_20px_rgba(0,255,0,0.2)] flex flex-col max-h-[90vh]"
-    >
-      <!-- Header -->
+  <el-dialog
+    class="terminal-post-editor"
+    :model-value="isOpen"
+    width="90%"
+    align-center
+    modal-class="terminal-post-editor__overlay"
+    :show-close="false"
+    :destroy-on-close="true"
+    :close-on-click-modal="!isLoading"
+    :close-on-press-escape="!isLoading"
+    @close="emit('close')"
+  >
+    <template #header>
       <div class="flex items-center justify-between p-4 border-b border-[#00ff00] bg-[#00ff00]/10">
         <h2 class="text-xl font-bold uppercase text-[#00ff00]">
           {{ post ? '> 编辑_扇区数据' : '> 写入_新数据' }}
         </h2>
         <button
+          type="button"
+          :disabled="isLoading"
           @click="emit('close')"
-          class="w-8 h-8 flex items-center justify-center border border-[#00ff00] text-[#00ff00] hover:bg-[#00ff00] hover:text-black transition-colors font-bold"
+          class="w-8 h-8 flex items-center justify-center border border-[#00ff00] text-[#00ff00] hover:bg-[#00ff00] hover:text-black transition-colors font-bold disabled:opacity-50 disabled:cursor-not-allowed"
         >
           X
         </button>
       </div>
+    </template>
 
-      <!-- Body -->
-      <div class="p-6 overflow-y-auto custom-scrollbar">
-        <form @submit.prevent="handleSubmit" class="space-y-6">
-          <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
-            <div class="md:col-span-5 space-y-2">
-              <label class="block text-[#00ff00] uppercase text-sm font-bold">标题</label>
-              <input
-                v-model="formData.title"
-                type="text"
-                required
-                class="w-full bg-black border border-[#00ff00] p-2 text-[#00ff00] focus:outline-none focus:shadow-[0_0_10px_#00ff00] font-sharetech"
+    <div class="p-6 overflow-y-auto custom-scrollbar terminal-post-editor__body">
+      <el-form
+        ref="formRef"
+        :model="formData"
+        :rules="rules"
+        label-position="top"
+        class="space-y-6"
+      >
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
+          <el-form-item class="md:col-span-5" label="标题" prop="title">
+            <el-input v-model="formData.title" :disabled="isLoading" />
+          </el-form-item>
+
+          <el-form-item class="md:col-span-3" label="分类" prop="category">
+            <el-select v-model="formData.category" :disabled="isLoading" class="w-full">
+              <el-option
+                v-for="category in categoryOptions"
+                :key="category.slug"
+                :value="category.slug"
+                :label="`${category.name}${category.isActive ? '' : ' (disabled)'} (${category.slug.toUpperCase()})`"
+              />
+            </el-select>
+          </el-form-item>
+
+          <el-form-item class="md:col-span-4" label="日期 (YYYY-MM-DD)" prop="date">
+            <div class="terminal-post-editor__date flex items-center gap-2 w-full">
+              <el-input
+                v-model="dateYear"
+                inputmode="numeric"
+                placeholder="YYYY"
+                maxlength="4"
+                style="width: 86px"
+                class="terminal-post-editor__date-field"
+                :disabled="isLoading"
+              />
+              <span class="text-[#00ff00] shrink-0">-</span>
+              <el-input
+                v-model="dateMonth"
+                inputmode="numeric"
+                placeholder="MM"
+                maxlength="2"
+                style="width: 64px"
+                class="terminal-post-editor__date-field"
+                :disabled="isLoading"
+              />
+              <span class="text-[#00ff00] shrink-0">-</span>
+              <el-input
+                v-model="dateDay"
+                inputmode="numeric"
+                placeholder="DD"
+                maxlength="2"
+                style="width: 64px"
+                class="terminal-post-editor__date-field"
+                :disabled="isLoading"
               />
             </div>
+          </el-form-item>
+        </div>
 
-            <div class="md:col-span-3 space-y-2">
-              <label class="block text-[#00ff00] uppercase text-sm font-bold">分类</label>
-              <select
-                v-model="formData.category"
-                required
-                class="w-full bg-black border border-[#00ff00] p-2 text-[#00ff00] focus:outline-none focus:shadow-[0_0_10px_#00ff00] font-sharetech"
-              >
-                <option v-for="category in categoryOptions" :key="category.slug" :value="category.slug">
-                  {{ category.name }}{{ category.isActive ? '' : ' (disabled)' }} ({{
-                    category.slug.toUpperCase()
-                  }})
-                </option>
-              </select>
-            </div>
+        <el-form-item label="摘要" prop="excerpt">
+          <el-input v-model="formData.excerpt" type="textarea" :rows="3" :disabled="isLoading" />
+        </el-form-item>
 
-            <div class="md:col-span-4 space-y-2">
-              <label class="block text-[#00ff00] uppercase text-sm font-bold">日期 (YYYY-MM-DD)</label>
-              <div class="flex gap-2 items-center">
-                <input
-                  v-model="dateYear"
-                  @input="updateDate"
-                  type="text"
-                  placeholder="YYYY"
-                  maxlength="4"
-                  class="flex-1 min-w-[4rem] bg-black border border-[#00ff00] p-2 text-[#00ff00] focus:outline-none focus:shadow-[0_0_10px_#00ff00] font-sharetech text-center"
-                />
-                <span class="text-[#00ff00] shrink-0">-</span>
-                <input
-                  v-model="dateMonth"
-                  @input="updateDate"
-                  type="text"
-                  placeholder="MM"
-                  maxlength="2"
-                  class="w-14 shrink-0 bg-black border border-[#00ff00] p-2 text-[#00ff00] focus:outline-none focus:shadow-[0_0_10px_#00ff00] font-sharetech text-center"
-                />
-                <span class="text-[#00ff00] shrink-0">-</span>
-                <input
-                  v-model="dateDay"
-                  @input="updateDate"
-                  type="text"
-                  placeholder="DD"
-                  maxlength="2"
-                  class="w-14 shrink-0 bg-black border border-[#00ff00] p-2 text-[#00ff00] focus:outline-none focus:shadow-[0_0_10px_#00ff00] font-sharetech text-center"
-                />
-              </div>
-            </div>
-          </div>
-
-          <div class="space-y-2">
-            <label class="block text-[#00ff00] uppercase text-sm font-bold">摘要</label>
-            <textarea
-              v-model="formData.excerpt"
-              rows="3"
-              required
-              class="w-full bg-black border border-[#00ff00] p-2 text-[#00ff00] focus:outline-none focus:shadow-[0_0_10px_#00ff00] font-sharetech"
-            ></textarea>
-          </div>
-
-          <div class="space-y-2">
-            <div class="flex flex-wrap items-center justify-between gap-3">
-              <label class="block text-[#00ff00] uppercase text-sm font-bold">正文内容 (支持 Markdown)</label>
+        <el-form-item prop="content">
+          <template #label>
+            <div class="flex flex-wrap items-center justify-between gap-3 w-full">
+              <span>正文内容 (支持 Markdown)</span>
               <div class="flex flex-wrap items-center gap-2">
                 <input
                   ref="fileInputRef"
@@ -389,132 +564,151 @@ const handleSubmit = () => {
                   class="hidden"
                   @change="handleFileChange"
                 />
-                <button
-                  type="button"
-                  :disabled="isUploadingImage"
+                <el-button
+                  size="small"
+                  :disabled="isLoading || isUploadingImage"
                   @click="openFilePicker"
-                  class="px-3 py-1 border border-[#00ff00] text-[#00ff00] hover:bg-[#00ff00] hover:text-black transition-colors uppercase text-xs disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {{ isUploadingImage ? '上传中...' : '上传图片' }}
-                </button>
-                <button
-                  type="button"
+                </el-button>
+                <el-button
+                  size="small"
+                  :disabled="isLoading"
                   @click="openExternalImage"
-                  class="px-3 py-1 border border-[#00ff00] text-[#00ff00] hover:bg-[#00ff00] hover:text-black transition-colors uppercase text-xs"
                 >
                   插入外链图片
-                </button>
+                </el-button>
               </div>
             </div>
+          </template>
 
-            <div v-if="uploadError" class="text-xs text-red-500 border border-red-500 px-2 py-1">
-              {{ uploadError }}
-            </div>
+          <div class="w-full space-y-2">
+            <el-alert
+              v-if="uploadError"
+              type="error"
+              show-icon
+              :closable="false"
+              :title="uploadError"
+            />
 
-            <textarea
+            <el-input
               ref="contentInputRef"
               v-model="formData.content"
-              rows="15"
-              required
-              class="w-full bg-black border border-[#00ff00] p-2 text-[#00ff00] focus:outline-none focus:shadow-[0_0_10px_#00ff00] font-mono text-sm leading-relaxed"
-            ></textarea>
+              type="textarea"
+              :rows="15"
+              :disabled="isLoading"
+              class="terminal-post-editor__content"
+              @keyup="captureContentSelection"
+              @mouseup="captureContentSelection"
+              @click="captureContentSelection"
+            />
           </div>
-        </form>
-      </div>
+        </el-form-item>
+      </el-form>
+    </div>
 
-      <div
-        v-if="showExternalImage"
-        class="absolute inset-0 z-20 flex items-center justify-center bg-black/80 backdrop-blur-sm"
-      >
-        <div class="w-full max-w-md border-2 border-[#00ff00] bg-[#0a0a0a] p-5">
-          <div class="flex items-center justify-between border-b border-[#00ff00] pb-3">
-            <div class="text-[#00ff00] uppercase text-sm font-bold">插入外链图片</div>
-            <button
-              type="button"
-              @click="closeExternalImage"
-              class="w-7 h-7 flex items-center justify-center border border-[#00ff00] text-[#00ff00] hover:bg-[#00ff00] hover:text-black transition-colors font-bold"
-            >
-              X
-            </button>
-          </div>
-
-          <div class="mt-4 space-y-3">
-            <div>
-              <label class="block text-[#00ff00] uppercase text-xs mb-1">图片 URL</label>
-              <input
-                ref="externalImageUrlRef"
-                v-model="externalImageUrl"
-                type="text"
-                placeholder="https://..."
-                class="w-full bg-black border border-[#00ff00] px-3 py-2 text-[#00ff00] focus:outline-none focus:shadow-[0_0_10px_#00ff00] font-sharetech text-sm"
-              />
-            </div>
-            <div>
-              <label class="block text-[#00ff00] uppercase text-xs mb-1">说明 (可选)</label>
-              <input
-                v-model="externalImageAlt"
-                type="text"
-                placeholder="图片说明"
-                class="w-full bg-black border border-[#00ff00] px-3 py-2 text-[#00ff00] focus:outline-none focus:shadow-[0_0_10px_#00ff00] font-sharetech text-sm"
-              />
-            </div>
-            <div v-if="externalImageError" class="text-xs text-red-500 border border-red-500 px-2 py-1">
-              {{ externalImageError }}
-            </div>
-          </div>
-
-          <div class="mt-4 flex justify-end gap-3">
-            <button
-              type="button"
-              @click="closeExternalImage"
-              class="px-4 py-2 border border-[#00ff00] text-[#00ff00] hover:bg-[#00ff00]/10 transition-colors uppercase text-xs"
-            >
-              取消
-            </button>
-            <button
-              type="button"
-              @click="handleInsertExternalImage"
-              class="px-4 py-2 bg-[#00ff00] text-black font-bold hover:bg-[#00cc00] transition-colors uppercase text-xs"
-            >
-              插入
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Footer -->
+    <template #footer>
       <div class="p-4 border-t border-[#00ff00] bg-[#00ff00]/5 flex justify-end gap-4">
+        <el-button :disabled="isLoading" @click="emit('close')">取消</el-button>
+        <el-button type="primary" :loading="isLoading" @click="handleSubmit">
+          {{ isLoading ? '写入中...' : '保存_数据' }}
+        </el-button>
+      </div>
+    </template>
+  </el-dialog>
+
+  <el-dialog
+    v-model="showExternalImage"
+    class="terminal-post-editor__external"
+    width="520px"
+    :show-close="false"
+    :close-on-click-modal="true"
+    :close-on-press-escape="true"
+  >
+    <template #header>
+      <div class="flex items-center justify-between p-4 border-b border-[#00ff00] bg-[#00ff00]/10">
+        <h3 class="text-sm font-bold uppercase text-[#00ff00]">插入外链图片</h3>
         <button
           type="button"
-          @click="emit('close')"
-          class="px-6 py-2 border border-[#00ff00] text-[#00ff00] hover:bg-[#00ff00]/10 transition-colors uppercase"
+          @click="closeExternalImage"
+          class="w-7 h-7 flex items-center justify-center border border-[#00ff00] text-[#00ff00] hover:bg-[#00ff00] hover:text-black transition-colors font-bold"
         >
-          取消
-        </button>
-        <button
-          @click="handleSubmit"
-          :disabled="isLoading"
-          class="px-6 py-2 bg-[#00ff00] text-black font-bold hover:bg-[#00cc00] transition-colors uppercase disabled:opacity-50"
-        >
-          {{ isLoading ? '写入中...' : '保存_数据' }}
+          X
         </button>
       </div>
+    </template>
+
+    <div class="p-5 space-y-3">
+      <div>
+        <div class="text-xs uppercase opacity-80 mb-1">图片 URL</div>
+        <el-input
+          ref="externalImageUrlRef"
+          v-model="externalImageUrl"
+          placeholder="http://... 或 https://..."
+        />
+      </div>
+
+      <div>
+        <div class="text-xs uppercase opacity-80 mb-1">说明 (可选)</div>
+        <el-input v-model="externalImageAlt" placeholder="图片说明" />
+      </div>
+
+      <el-alert
+        v-if="externalImageError"
+        type="error"
+        show-icon
+        :closable="false"
+        :title="externalImageError"
+      />
     </div>
-  </div>
+
+    <template #footer>
+      <div class="p-4 border-t border-[#00ff00] bg-[#00ff00]/5 flex justify-end gap-3">
+        <el-button @click="closeExternalImage">取消</el-button>
+        <el-button type="primary" @click="handleInsertExternalImage">插入</el-button>
+      </div>
+    </template>
+  </el-dialog>
 </template>
 
 <style scoped>
+.terminal-post-editor__body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.terminal-post-editor__date {
+  justify-content: flex-start;
+}
+
+.terminal-post-editor__date :deep(.el-input__inner) {
+  text-align: center;
+}
+
+.terminal-post-editor__content :deep(.el-textarea__inner) {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace !important;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 255, 0, 0.45) #050a05;
+}
+
 .custom-scrollbar::-webkit-scrollbar {
   width: 8px;
 }
 .custom-scrollbar::-webkit-scrollbar-track {
-  background: #0a0a0a;
-  border-left: 1px solid #00ff00;
+  background: #050a05;
+  border-left: 1px solid rgba(0, 255, 0, 0.25);
 }
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #00ff00;
+  background: rgba(0, 255, 0, 0.35);
 }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #00cc00;
+  background: rgba(0, 255, 0, 0.55);
 }
 </style>
