@@ -403,17 +403,17 @@ onMounted(() => {
                         <el-option label="admin" value="admin" />
                       </el-select>
                     </el-form-item>
-                    <div class="md:col-span-2 flex items-end">
+                    <el-form-item class="md:col-span-2 terminal-superadmin__create-item" label=" ">
                       <el-button
                         type="primary"
-                        class="w-full"
+                        class="w-full terminal-superadmin__create-btn"
                         :loading="usersActionLoading"
                         :disabled="usersLoading || usersActionLoading"
                         @click="createManagedUser"
                       >
                         创建
                       </el-button>
-                    </div>
+                    </el-form-item>
                   </div>
                 </el-form>
                 <p class="mt-3 text-xs opacity-60">仅支持创建 user/admin 账号，不能操作 super_admin。</p>
@@ -782,5 +782,13 @@ onMounted(() => {
 :deep(.terminal-superadmin-table .el-table__header-wrapper .el-table__cell .cell) {
   font-weight: 700;
   text-transform: uppercase;
+}
+
+:deep(.terminal-superadmin__create-item .el-form-item__label) {
+  visibility: hidden;
+}
+
+:deep(.terminal-superadmin__create-btn.el-button) {
+  height: var(--el-component-size);
 }
 </style>
