@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useUiStore } from '@/stores/ui'
+import { getMetrics } from '@/api/generated/metrics/metrics'
 
 const uiStore = useUiStore()
 
@@ -12,8 +13,14 @@ const crtEnabled = computed({
 const uaExpanded = ref(false)
 
 const nowMs = ref(Date.now())
-const uptimeMs = ref(typeof performance !== 'undefined' ? performance.now() : 0)
-const uptimeSeconds = computed(() => Math.max(0, Math.floor(uptimeMs.value / 1000)))
+const serverUptimeBaseSeconds = ref<number | null>(null)
+const serverUptimeBaseAtMs = ref(Date.now())
+const serverUptimeSeconds = computed(() => {
+  const baseSeconds = serverUptimeBaseSeconds.value
+  if (baseSeconds == null) return 0
+  const deltaSeconds = Math.max(0, Math.floor((nowMs.value - serverUptimeBaseAtMs.value) / 1000))
+  return Math.max(0, baseSeconds + deltaSeconds)
+})
 
 type ViewportInfo = { width: number; height: number; dpr: number }
 const viewport = ref<ViewportInfo>({ width: 0, height: 0, dpr: 1 })
@@ -62,12 +69,42 @@ const formatBytes = (bytes: number) => {
   return `${value.toFixed(unitIndex === 0 ? 0 : 1)}${units[unitIndex]}`
 }
 
+const pad2 = (value: number) => String(value).padStart(2, '0')
+const formatDuration = (seconds: number) => {
+  const totalSeconds = Math.max(0, Math.floor(seconds))
+  const days = Math.floor(totalSeconds / 86400)
+  const hours = Math.floor((totalSeconds % 86400) / 3600)
+  const minutes = Math.floor((totalSeconds % 3600) / 60)
+  const secs = totalSeconds % 60
+  return `${days}d ${pad2(hours)}:${pad2(minutes)}:${pad2(secs)}`
+}
+
 const shortUserAgent = computed(() => {
   const ua = userAgent || 'unknown'
   if (uaExpanded.value) return ua
   if (ua.length <= 60) return ua
   return `${ua.slice(0, 60)}...`
 })
+
+const fetchServerUptime = async () => {
+  try {
+    const { metricsControllerGetUptime } = getMetrics()
+    const response = await metricsControllerGetUptime()
+
+    const rawSeconds = response?.uptimeSeconds
+    const uptimeSeconds =
+      typeof rawSeconds === 'number' && Number.isFinite(rawSeconds) && rawSeconds >= 0
+        ? Math.floor(rawSeconds)
+        : 0
+
+    serverUptimeBaseSeconds.value = uptimeSeconds
+  } catch (error) {
+    serverUptimeBaseSeconds.value = 0
+    console.error('Fetch uptime failed:', error)
+  } finally {
+    serverUptimeBaseAtMs.value = Date.now()
+  }
+}
 
 const updateViewport = () => {
   if (typeof window === 'undefined') return
@@ -130,6 +167,7 @@ onMounted(() => {
   updateViewport()
   updateMemory()
   updateConnection()
+  void fetchServerUptime()
 
   if (typeof window !== 'undefined') window.addEventListener('resize', updateViewport)
 
@@ -141,7 +179,6 @@ onMounted(() => {
 
   timer = window.setInterval(() => {
     nowMs.value = Date.now()
-    uptimeMs.value = typeof performance !== 'undefined' ? performance.now() : uptimeMs.value + 1000
     updateMemory()
   }, 1000)
 })
@@ -202,7 +239,7 @@ onBeforeUnmount(() => {
           </p>
           <p>
             >>> 运行时长:
-            <span class="text-[#00ff00]">{{ uptimeSeconds }}</span>s
+            <span class="text-[#00ff00]">{{ formatDuration(serverUptimeSeconds) }}</span>
           </p>
           <p>
             >>> 视口:

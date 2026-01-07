@@ -19,6 +19,7 @@ export * from './loginDto';
 export * from './metricsMemoryDto';
 export * from './metricsPageviewsDto';
 export * from './metricsStorageDto';
+export * from './metricsUptimeDto';
 export * from './paginatedPostsDto';
 export * from './postDto';
 export * from './postsCategoriesStatsDto';

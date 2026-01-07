@@ -8,7 +8,8 @@
 import type {
   MetricsMemoryDto,
   MetricsPageviewsDto,
-  MetricsStorageDto
+  MetricsStorageDto,
+  MetricsUptimeDto
 } from '.././model';
 
 import { customInstance } from '../../axios-instance';
@@ -51,7 +52,19 @@ const metricsControllerGetMemoryUsage = (
     },
       options);
     }
-  return {metricsControllerIncrementPageviews,metricsControllerGetStorageUsage,metricsControllerGetMemoryUsage}};
+  /**
+ * @summary Get server uptime.
+ */
+const metricsControllerGetUptime = (
+    
+ options?: SecondParameter<typeof customInstance<MetricsUptimeDto>>,) => {
+      return customInstance<MetricsUptimeDto>(
+      {url: `/api/metrics/uptime`, method: 'GET'
+    },
+      options);
+    }
+  return {metricsControllerIncrementPageviews,metricsControllerGetStorageUsage,metricsControllerGetMemoryUsage,metricsControllerGetUptime}};
 export type MetricsControllerIncrementPageviewsResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getMetrics>['metricsControllerIncrementPageviews']>>>
 export type MetricsControllerGetStorageUsageResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getMetrics>['metricsControllerGetStorageUsage']>>>
 export type MetricsControllerGetMemoryUsageResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getMetrics>['metricsControllerGetMemoryUsage']>>>
+export type MetricsControllerGetUptimeResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getMetrics>['metricsControllerGetUptime']>>>
