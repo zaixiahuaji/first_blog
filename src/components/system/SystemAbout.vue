@@ -48,7 +48,8 @@ const markIconFailed = (link: FriendLink) => {
       <div class="border-2 border-[#2d2d30] p-6 bg-[#f9f9fa]">
         <h3 class="uppercase font-bold mb-4 text-[#e62e2e] border-b border-[#ccc] pb-2">技术栈</h3>
         <div class="flex flex-wrap gap-2 text-xs font-bold">
-          <span class="px-2 py-1 border-2 border-[#2d2d30] bg-white">Vue 3</span>
+          <span class="px-2 py-1 border-2 border-[#2d2d30] bg-white">VUE 3</span>
+          <span class="px-2 py-1 border-2 border-[#2d2d30] bg-white">Element plus</span>
           <span class="px-2 py-1 border-2 border-[#2d2d30] bg-white">NestJS</span>
           <span class="px-2 py-1 border-2 border-[#2d2d30] bg-white">TypeScript</span>
           <span class="px-2 py-1 border-2 border-[#2d2d30] bg-white">NodeJS</span>
