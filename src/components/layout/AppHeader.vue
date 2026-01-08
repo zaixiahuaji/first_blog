@@ -104,7 +104,7 @@ onUnmounted(() => {
         <h1 ref="titleRef" class="text-3xl tracking-[0.2em] font-bold text-[#2d2d30] uppercase">
           档案馆_84
         </h1>
-        <p class="text-xs text-[#666] tracking-widest uppercase">白域实验室 // 协议</p>
+        <p class="text-xs text-[#666] tracking-widest uppercase">磁性 // 记忆 // 光</p>
       </div>
     </div>
 
