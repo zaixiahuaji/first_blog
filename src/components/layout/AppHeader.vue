@@ -159,3 +159,15 @@ onUnmounted(() => {
     </div>
   </header>
 </template>
+
+<style scoped>
+.blink {
+  animation: blinker 2s linear infinite;
+}
+
+@keyframes blinker {
+  50% {
+    opacity: 0;
+  }
+}
+</style>
