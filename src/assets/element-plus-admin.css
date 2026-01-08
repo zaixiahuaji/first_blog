@@ -1,0 +1,381 @@
+/* Element Plus terminal theme (admin only)
+   - Scope: enabled by body class "huaji-admin" (set in App.vue)
+   - Goal: keep Element Plus UI consistent with the admin CRT/terminal style
+*/
+
+body.huaji-admin {
+  /* Base palette */
+  --huaji-admin-bg: #000000;
+  --huaji-admin-fg: #00ff00;
+  --huaji-admin-fg-dim: rgba(0, 255, 0, 0.75);
+  --huaji-admin-border: rgba(0, 255, 0, 0.9);
+
+  background-color: var(--huaji-admin-bg);
+  color: var(--huaji-admin-fg);
+
+  /* Element Plus tokens */
+  --el-font-family: 'Share Tech Mono', monospace;
+
+  --el-color-primary: var(--huaji-admin-fg);
+  --el-color-success: var(--huaji-admin-fg);
+  --el-color-warning: #ff8800;
+  --el-color-danger: #ff3333;
+  --el-color-error: #ff3333;
+  --el-color-info: #00a3cc;
+
+  --el-text-color-primary: var(--huaji-admin-fg);
+  --el-text-color-regular: var(--huaji-admin-fg);
+  --el-text-color-secondary: var(--huaji-admin-fg-dim);
+  --el-text-color-placeholder: rgba(0, 255, 0, 0.55);
+  --el-text-color-disabled: rgba(0, 255, 0, 0.35);
+
+  --el-bg-color: var(--huaji-admin-bg);
+  --el-bg-color-page: var(--huaji-admin-bg);
+  --el-bg-color-overlay: var(--huaji-admin-bg);
+
+  --el-border-color: var(--huaji-admin-border);
+  --el-border-color-light: rgba(0, 255, 0, 0.65);
+  --el-border-color-lighter: rgba(0, 255, 0, 0.45);
+  --el-border-color-extra-light: rgba(0, 255, 0, 0.3);
+
+  --el-fill-color: rgba(0, 0, 0, 0.85);
+  --el-fill-color-light: rgba(0, 255, 0, 0.08);
+  --el-fill-color-lighter: rgba(0, 255, 0, 0.05);
+  --el-fill-color-extra-light: rgba(0, 255, 0, 0.03);
+  --el-fill-color-dark: rgba(0, 255, 0, 0.12);
+  --el-fill-color-darker: rgba(0, 255, 0, 0.16);
+  --el-fill-color-blank: var(--huaji-admin-bg);
+
+  /* Table tokens */
+  --el-table-bg-color: var(--huaji-admin-bg);
+  --el-table-tr-bg-color: var(--huaji-admin-bg);
+  --el-table-expanded-cell-bg-color: var(--huaji-admin-bg);
+  --el-table-border-color: rgba(0, 255, 0, 0.3);
+  --el-table-header-bg-color: rgba(0, 255, 0, 0.12);
+  --el-table-row-hover-bg-color: rgba(0, 255, 0, 0.06);
+  --el-table-current-row-bg-color: rgba(0, 255, 0, 0.1);
+  --el-table-text-color: var(--huaji-admin-fg);
+  --el-table-header-text-color: var(--huaji-admin-fg);
+  --el-table-fixed-box-shadow: none;
+
+  --el-border-radius-base: 0px;
+  --el-border-radius-small: 0px;
+  --el-border-radius-round: 0px;
+
+  --el-box-shadow: none;
+  --el-box-shadow-light: none;
+
+  --el-mask-color: rgba(0, 0, 0, 0.75);
+  --el-overlay-color-lighter: rgba(0, 0, 0, 0.75);
+}
+
+/* Subtle component-level tune-ups */
+body.huaji-admin .el-button {
+  font-family: var(--el-font-family);
+}
+
+body.huaji-admin .el-input__wrapper,
+body.huaji-admin .el-select__wrapper {
+  background-color: var(--huaji-admin-bg) !important;
+  color: var(--huaji-admin-fg) !important;
+  border-radius: 0 !important;
+  box-shadow: 0 0 0 1px var(--huaji-admin-border) inset !important;
+}
+
+body.huaji-admin .el-input__inner,
+body.huaji-admin .el-textarea__inner {
+  color: var(--huaji-admin-fg) !important;
+}
+
+body.huaji-admin .el-textarea__inner {
+  background-color: var(--huaji-admin-bg) !important;
+  border-radius: 0 !important;
+  border: 1px solid var(--huaji-admin-border) !important;
+  box-shadow: none !important;
+}
+
+body.huaji-admin .el-input-number__decrease,
+body.huaji-admin .el-input-number__increase {
+  background-color: var(--huaji-admin-bg) !important;
+  color: var(--huaji-admin-fg) !important;
+  border-color: var(--huaji-admin-border) !important;
+  border-radius: 0 !important;
+}
+
+body.huaji-admin .el-switch {
+  --el-switch-on-color: rgba(0, 255, 0, 0.3);
+  --el-switch-off-color: rgba(0, 255, 0, 0.15);
+}
+
+body.huaji-admin .el-form-item__label {
+  color: var(--huaji-admin-fg) !important;
+  opacity: 0.8;
+  text-transform: uppercase;
+}
+
+body.huaji-admin .el-form-item__error {
+  color: #ff3333 !important;
+}
+
+body.huaji-admin .el-popper,
+body.huaji-admin .el-select-dropdown,
+body.huaji-admin .el-dropdown__popper {
+  background-color: var(--huaji-admin-bg) !important;
+  color: var(--huaji-admin-fg) !important;
+  border: 1px solid var(--huaji-admin-border) !important;
+}
+
+body.huaji-admin .el-select-dropdown__item.is-selected {
+  color: var(--huaji-admin-fg) !important;
+}
+
+/* Tabs: terminal-style (used by SuperAdminView, etc.) */
+body.huaji-admin .terminal-superadmin-tabs {
+  --el-tabs-header-height: 52px;
+}
+
+body.huaji-admin .terminal-superadmin-tabs .el-tabs__header {
+  margin: 0;
+  padding: 0 12px;
+  border-bottom: 1px solid rgba(0, 255, 0, 0.4);
+  background: rgba(0, 255, 0, 0.08);
+}
+
+body.huaji-admin .terminal-superadmin-tabs .el-tabs__nav-wrap::after {
+  background-color: transparent;
+}
+
+body.huaji-admin .terminal-superadmin-tabs .el-tabs__active-bar {
+  background-color: transparent;
+}
+
+body.huaji-admin .terminal-superadmin-tabs .el-tabs__item {
+  color: var(--huaji-admin-fg);
+  border: 1px solid var(--huaji-admin-border);
+  border-radius: 0;
+  margin-right: 12px;
+  padding: 0 14px;
+  height: 34px;
+  line-height: 34px;
+  text-transform: uppercase;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+}
+
+/* Element Plus has special-case paddings for first/last tab items; enforce symmetric padding */
+body.huaji-admin .terminal-superadmin-tabs.el-tabs--top > .el-tabs__header .el-tabs__item {
+  padding: 0 14px;
+}
+
+body.huaji-admin .terminal-superadmin-tabs .el-tabs__item:hover {
+  color: var(--huaji-admin-fg);
+  background: rgba(0, 255, 0, 0.15);
+}
+
+body.huaji-admin .terminal-superadmin-tabs .el-tabs__item.is-active {
+  color: #000000;
+  background: var(--huaji-admin-fg);
+}
+
+body.huaji-admin .terminal-superadmin-tabs .el-tabs__content {
+  padding: 0;
+}
+
+/* Buttons: make "primary" match terminal outline style */
+body.huaji-admin .el-button {
+  border-radius: 0 !important;
+}
+
+/* Default buttons (type="" => no modifier class) */
+body.huaji-admin .el-button:not(.el-button--primary):not(.el-button--success):not(.el-button--warning):not(.el-button--danger):not(.el-button--info):not(.is-text):not(.is-link) {
+  --el-button-bg-color: transparent;
+  --el-button-border-color: var(--huaji-admin-border);
+  --el-button-text-color: var(--huaji-admin-fg);
+  --el-button-hover-bg-color: var(--huaji-admin-fg);
+  --el-button-hover-border-color: var(--huaji-admin-fg);
+  --el-button-hover-text-color: #000;
+  --el-button-active-bg-color: var(--huaji-admin-fg);
+  --el-button-active-border-color: var(--huaji-admin-fg);
+  --el-button-active-text-color: #000;
+  --el-button-disabled-bg-color: transparent;
+  --el-button-disabled-border-color: rgba(0, 255, 0, 0.3);
+  --el-button-disabled-text-color: rgba(0, 255, 0, 0.35);
+}
+
+body.huaji-admin .el-button--primary {
+  --el-button-bg-color: transparent;
+  --el-button-border-color: var(--huaji-admin-border);
+  --el-button-text-color: var(--huaji-admin-fg);
+  --el-button-hover-bg-color: var(--huaji-admin-fg);
+  --el-button-hover-border-color: var(--huaji-admin-fg);
+  --el-button-hover-text-color: #000;
+  --el-button-active-bg-color: var(--huaji-admin-fg);
+  --el-button-active-border-color: var(--huaji-admin-fg);
+  --el-button-active-text-color: #000;
+  --el-button-disabled-bg-color: transparent;
+  --el-button-disabled-border-color: rgba(0, 255, 0, 0.3);
+  --el-button-disabled-text-color: rgba(0, 255, 0, 0.35);
+}
+
+body.huaji-admin .el-button--default {
+  --el-button-bg-color: transparent;
+  --el-button-border-color: var(--huaji-admin-border);
+  --el-button-text-color: var(--huaji-admin-fg);
+  --el-button-hover-bg-color: var(--huaji-admin-fg);
+  --el-button-hover-border-color: var(--huaji-admin-fg);
+  --el-button-hover-text-color: #000;
+  --el-button-active-bg-color: var(--huaji-admin-fg);
+  --el-button-active-border-color: var(--huaji-admin-fg);
+  --el-button-active-text-color: #000;
+  --el-button-disabled-bg-color: transparent;
+  --el-button-disabled-border-color: rgba(0, 255, 0, 0.3);
+  --el-button-disabled-text-color: rgba(0, 255, 0, 0.35);
+}
+
+body.huaji-admin .el-button--danger {
+  --el-button-bg-color: transparent;
+  --el-button-border-color: #ff3333;
+  --el-button-text-color: #ff3333;
+  --el-button-hover-bg-color: #ff3333;
+  --el-button-hover-border-color: #ff3333;
+  --el-button-hover-text-color: #000;
+  --el-button-active-bg-color: #ff3333;
+  --el-button-active-border-color: #ff3333;
+  --el-button-active-text-color: #000;
+  --el-button-disabled-bg-color: transparent;
+  --el-button-disabled-border-color: rgba(255, 51, 51, 0.35);
+  --el-button-disabled-text-color: rgba(255, 51, 51, 0.45);
+}
+
+/* Message: terminal-style toast */
+body.huaji-admin .el-message {
+  background: var(--huaji-admin-bg) !important;
+  border: 1px solid var(--huaji-admin-border) !important;
+  box-shadow: none !important;
+}
+
+body.huaji-admin .el-message__content,
+body.huaji-admin .el-message__icon {
+  color: var(--huaji-admin-fg) !important;
+}
+
+body.huaji-admin .el-message--error {
+  border-color: #ff3333 !important;
+}
+
+body.huaji-admin .el-message--error .el-message__content,
+body.huaji-admin .el-message--error .el-message__icon {
+  color: #ff3333 !important;
+}
+
+/* Alert: terminal-style block */
+body.huaji-admin .el-alert {
+  background: var(--huaji-admin-bg) !important;
+  border: 1px solid var(--huaji-admin-border) !important;
+  border-radius: 0 !important;
+}
+
+body.huaji-admin .el-alert__title,
+body.huaji-admin .el-alert__description,
+body.huaji-admin .el-alert__icon {
+  color: var(--huaji-admin-fg) !important;
+}
+
+body.huaji-admin .el-alert--error {
+  border-color: #ff3333 !important;
+}
+
+body.huaji-admin .el-alert--error .el-alert__title,
+body.huaji-admin .el-alert--error .el-alert__description,
+body.huaji-admin .el-alert--error .el-alert__icon {
+  color: #ff3333 !important;
+}
+
+/* MessageBox: terminal-style confirm dialog */
+body.huaji-admin .el-message-box {
+  background: var(--huaji-admin-bg) !important;
+  border: 1px solid var(--huaji-admin-border) !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+body.huaji-admin .el-message-box__title,
+body.huaji-admin .el-message-box__message,
+body.huaji-admin .el-message-box__container {
+  color: var(--huaji-admin-fg) !important;
+}
+
+body.huaji-admin .el-message-box__headerbtn .el-message-box__close {
+  color: var(--huaji-admin-fg) !important;
+}
+
+body.huaji-admin .el-message-box__status.el-icon {
+  color: var(--huaji-admin-fg) !important;
+}
+
+/* Popconfirm: show green text and preserve newlines */
+body.huaji-admin .el-popconfirm__main {
+  color: var(--huaji-admin-fg) !important;
+  white-space: pre-line;
+}
+
+body.huaji-admin .el-popconfirm__icon {
+  color: var(--huaji-admin-fg) !important;
+}
+
+/* Dialog: terminal-style dialog (used by PostEditor, etc.) */
+body.huaji-admin .el-dialog {
+  background: var(--huaji-admin-bg) !important;
+  border: 2px solid var(--huaji-admin-border) !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+/* We render custom header/body/footer blocks; remove default paddings */
+body.huaji-admin .el-dialog__header {
+  padding: 0 !important;
+  margin-right: 0 !important;
+}
+
+body.huaji-admin .el-dialog__body {
+  padding: 0 !important;
+}
+
+body.huaji-admin .el-dialog__footer {
+  padding: 0 !important;
+}
+
+/* PostEditor: constrain dialog height and keep inner scroll (Dialog is teleported, so styles must be global) */
+body.huaji-admin .terminal-post-editor__overlay.el-overlay,
+body.huaji-admin .terminal-post-editor__overlay.el-overlay .el-overlay-dialog {
+  overflow: hidden !important;
+}
+
+body.huaji-admin .terminal-post-editor__overlay.el-overlay .el-overlay-dialog {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+}
+
+body.huaji-admin .el-dialog.terminal-post-editor {
+  max-width: 1100px;
+  height: 90vh !important;
+  max-height: 90vh !important;
+  margin: 0 auto !important;
+  display: flex !important;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+body.huaji-admin .el-dialog.terminal-post-editor .el-dialog__header,
+body.huaji-admin .el-dialog.terminal-post-editor .el-dialog__footer {
+  flex: 0 0 auto;
+}
+
+body.huaji-admin .el-dialog.terminal-post-editor .el-dialog__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  overflow: hidden;
+}

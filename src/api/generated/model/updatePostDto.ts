@@ -5,12 +5,15 @@
  * 个人博客 API 文档
  * OpenAPI spec version: 1.0
  */
-import type { UpdatePostDtoCategory } from './updatePostDtoCategory';
 
 export interface UpdatePostDto {
   /** @maxLength 255 */
   title?: string;
-  category?: UpdatePostDtoCategory;
+  /**
+   * 类别 slug（仅字母/数字/下划线，<=12，强制小写）
+   * @maxLength 12
+   */
+  category?: string;
   /** @maxLength 32 */
   date?: string;
   excerpt?: string;

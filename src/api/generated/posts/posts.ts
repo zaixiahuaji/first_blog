@@ -7,7 +7,11 @@
  */
 import type {
   CreatePostDto,
+  PaginatedPostsDto,
+  PostDto,
+  PostsCategoriesStatsDto,
   PostsControllerFindAllParams,
+  PostsTotalDto,
   UpdatePostDto
 } from '.././model';
 
@@ -23,8 +27,8 @@ type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
  */
 const postsControllerFindAll = (
     params?: PostsControllerFindAllParams,
- options?: SecondParameter<typeof customInstance<void>>,) => {
-      return customInstance<void>(
+ options?: SecondParameter<typeof customInstance<PaginatedPostsDto>>,) => {
+      return customInstance<PaginatedPostsDto>(
       {url: `/api/posts`, method: 'GET',
         params
     },
@@ -35,11 +39,44 @@ const postsControllerFindAll = (
  */
 const postsControllerCreate = (
     createPostDto: CreatePostDto,
- options?: SecondParameter<typeof customInstance<unknown>>,) => {
-      return customInstance<unknown>(
+ options?: SecondParameter<typeof customInstance<PostDto>>,) => {
+      return customInstance<PostDto>(
       {url: `/api/posts`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
       data: createPostDto
+    },
+      options);
+    }
+  /**
+ * @summary 获取文章总数（兼容旧路径）
+ */
+const postsControllerGetTotalCompat = (
+    
+ options?: SecondParameter<typeof customInstance<PostsTotalDto>>,) => {
+      return customInstance<PostsTotalDto>(
+      {url: `/api/posts/total`, method: 'GET'
+    },
+      options);
+    }
+  /**
+ * @summary 获取文章总数
+ */
+const postsControllerGetTotal = (
+    
+ options?: SecondParameter<typeof customInstance<PostsTotalDto>>,) => {
+      return customInstance<PostsTotalDto>(
+      {url: `/api/posts/stats/total`, method: 'GET'
+    },
+      options);
+    }
+  /**
+ * @summary 获取各类别文章数量
+ */
+const postsControllerGetCategoriesStats = (
+    
+ options?: SecondParameter<typeof customInstance<PostsCategoriesStatsDto>>,) => {
+      return customInstance<PostsCategoriesStatsDto>(
+      {url: `/api/posts/stats/categories`, method: 'GET'
     },
       options);
     }
@@ -48,8 +85,8 @@ const postsControllerCreate = (
  */
 const postsControllerFindOne = (
     id: string,
- options?: SecondParameter<typeof customInstance<void>>,) => {
-      return customInstance<void>(
+ options?: SecondParameter<typeof customInstance<PostDto>>,) => {
+      return customInstance<PostDto>(
       {url: `/api/posts/${id}`, method: 'GET'
     },
       options);
@@ -60,8 +97,8 @@ const postsControllerFindOne = (
 const postsControllerUpdate = (
     id: string,
     updatePostDto: UpdatePostDto,
- options?: SecondParameter<typeof customInstance<unknown>>,) => {
-      return customInstance<unknown>(
+ options?: SecondParameter<typeof customInstance<PostDto>>,) => {
+      return customInstance<PostDto>(
       {url: `/api/posts/${id}`, method: 'PATCH',
       headers: {'Content-Type': 'application/json', },
       data: updatePostDto
@@ -79,9 +116,12 @@ const postsControllerRemove = (
     },
       options);
     }
-  return {postsControllerFindAll,postsControllerCreate,postsControllerFindOne,postsControllerUpdate,postsControllerRemove}};
+  return {postsControllerFindAll,postsControllerCreate,postsControllerGetTotalCompat,postsControllerGetTotal,postsControllerGetCategoriesStats,postsControllerFindOne,postsControllerUpdate,postsControllerRemove}};
 export type PostsControllerFindAllResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getPosts>['postsControllerFindAll']>>>
 export type PostsControllerCreateResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getPosts>['postsControllerCreate']>>>
+export type PostsControllerGetTotalCompatResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getPosts>['postsControllerGetTotalCompat']>>>
+export type PostsControllerGetTotalResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getPosts>['postsControllerGetTotal']>>>
+export type PostsControllerGetCategoriesStatsResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getPosts>['postsControllerGetCategoriesStats']>>>
 export type PostsControllerFindOneResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getPosts>['postsControllerFindOne']>>>
 export type PostsControllerUpdateResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getPosts>['postsControllerUpdate']>>>
 export type PostsControllerRemoveResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getPosts>['postsControllerRemove']>>>

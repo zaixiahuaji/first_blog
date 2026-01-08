@@ -23,7 +23,9 @@ npm install
 ```
 
 2) 配置环境变量（编辑 `.env`）
-- `VITE_API_BASE_URL`：后端 API 基础地址（例如 `http://localhost:3000/`）
+- `VITE_API_BASE_URL`：后端 API 基础地址
+  - 推荐：`/`（本地开发依赖 Vite proxy 转发 `/api` 和 `/uploads`，生产同域也使用 `/`）
+  - 可选：`http://localhost:3000/`（直连后端，不推荐；可能需要后端 CORS 配置）
 
 3) 启动开发服务
 ```bash

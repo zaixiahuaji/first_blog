@@ -1,14 +1,24 @@
 import './assets/main.css'
+import 'element-plus/dist/index.css'
+import './assets/element-plus-admin.css'
 
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
+import ElementPlus from 'element-plus'
 
 import App from './App.vue'
 import router from './router'
+import { useAuthStore } from '@/stores/auth'
+import { useTelemetryStore } from '@/stores/telemetry'
 
 const app = createApp(App)
 
-app.use(createPinia())
+const pinia = createPinia()
+app.use(pinia)
 app.use(router)
+app.use(ElementPlus)
+
+useAuthStore(pinia).initialize()
+useTelemetryStore(pinia).initializeGlobalErrorCapture()
 
 app.mount('#app')

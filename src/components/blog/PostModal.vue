@@ -2,10 +2,12 @@
 import { computed, onMounted, onUnmounted } from 'vue'
 import { storeToRefs } from 'pinia'
 import { marked } from 'marked'
-import { usePostsStore, categoryAccentMap, categoryLabelMap } from '@/stores/posts'
+import { usePostsStore } from '@/stores/posts'
+import { useCategoriesStore } from '@/stores/categories'
 
 const postsStore = usePostsStore()
 const { activePost } = storeToRefs(postsStore)
+const categoriesStore = useCategoriesStore()
 
 const closeModal = () => {
   postsStore.closePost()
@@ -28,11 +30,11 @@ onUnmounted(() => {
 })
 
 const accentColor = computed(() =>
-  activePost.value ? categoryAccentMap[activePost.value.category] : '#2d2d30',
+  activePost.value ? categoriesStore.getColor(activePost.value.category) : '#2d2d30',
 )
 const accentShadow = computed(() => `6px 6px 0px ${accentColor.value}`)
 const categoryLabel = computed(() =>
-  activePost.value ? categoryLabelMap[activePost.value.category] : '',
+  activePost.value ? categoriesStore.getLabel(activePost.value.category) : '',
 )
 
 const parsedContent = computed(() => {
@@ -188,4 +190,14 @@ const parsedContent = computed(() => {
   text-decoration: underline;
   text-underline-offset: 2px;
 }
+
+:deep(.markdown-content img) {
+  max-width: 100%;
+  height: auto;
+  max-height: 60vh;
+  object-fit: contain;
+  display: block;
+  margin: 1em 0;
+}
+
 </style>
