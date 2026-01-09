@@ -3,7 +3,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { getPosts } from '@/api/generated/posts/posts'
-import PostEditor from '@/components/admin/PostEditor.vue'
+import PostEditor from '@/views/admin/components/PostEditor.vue'
 import type { PostItem } from '@/stores/posts'
 import { ElMessage } from 'element-plus'
 

@@ -3,7 +3,7 @@ import { nextTick, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import AdminBootLoader from '@/components/intro/AdminBootLoader.vue'
-import RegisterSuccessModal from '@/components/admin/RegisterSuccessModal.vue'
+import RegisterSuccessModal from '@/views/admin/components/RegisterSuccessModal.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
