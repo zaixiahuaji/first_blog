@@ -9,7 +9,7 @@ import BootLoader from '@/components/intro/BootLoader.vue'
 import CrtEffects from '@/components/layout/CrtEffects.vue'
 import AppHeader from '@/components/layout/AppHeader.vue'
 import SidebarNav from '@/components/layout/SidebarNav.vue'
-import MobileFilterNav from '@/components/blog/MobileFilterNav.vue'
+// import MobileFilterNav from '@/components/blog/MobileFilterNav.vue'
 import HeroBanner from '@/components/layout/HeroBanner.vue'
 import BlogGrid from '@/components/blog/BlogGrid.vue'
 import LoadMoreButton from '@/components/blog/LoadMoreButton.vue'
@@ -105,7 +105,7 @@ watch(activeView, (view) => {
         <main class="flex-1 overflow-y-auto p-4 md:p-8 bg-[#e6e6ea] relative scroll-smooth" id="main-viewport">
           <!-- 视图 1: 数据库 (默认) -->
           <div v-if="activeView === 'archive'" class="flex flex-col gap-12">
-            <MobileFilterNav class="md:hidden" />
+            <!-- <MobileFilterNav class="md:hidden" /> -->
             <HeroBanner />
 
             <!-- Loading State -->
