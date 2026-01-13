@@ -12,8 +12,11 @@ export interface RegisterDto {
    * @maxLength 12
    */
   username: string;
-  /** @maxLength 255 */
-  email: string;
+  /**
+   * 邀请码必须为大写，格式 XXXX-XXXX
+   * @maxLength 9
+   */
+  inviteCode: string;
   /**
    * 仅字母和数字，长度 1-10
    * @maxLength 10

@@ -1,7 +1,10 @@
 import { defineStore } from 'pinia'
+import { AxiosHeaders } from 'axios'
 import { getAuth } from '@/api/generated/auth/auth'
 import type { LoginDto, RegisterDto } from '@/api/generated/model'
 import { AXIOS_INSTANCE } from '@/api/axios-instance'
+
+const ADMIN_ROLES = new Set(['admin', 'super_admin'])
 
 // Simple JWT decode function to avoid extra dependency
 function jwtDecode<T>(token: string): T {
@@ -29,7 +32,6 @@ function jwtDecode<T>(token: string): T {
 
 interface UserPayload {
   sub: number | string
-  email: string
   role: string
   username?: string
   iat?: number
@@ -42,17 +44,18 @@ export const useAuthStore = defineStore('auth', {
     user: null as UserPayload | null,
     loading: false,
     error: null as string | null,
+    interceptorInstalled: false,
   }),
   getters: {
     isAuthenticated: (state) => !!state.token,
     userRole: (state) => state.user?.role || '',
+    isAdminLike: (state) => ADMIN_ROLES.has(state.user?.role ?? ''),
+    isSuperAdmin: (state) => state.user?.role === 'super_admin',
   },
   actions: {
     initialize() {
-      if (this.token) {
-        this.decodeToken(this.token)
-        this.setupInterceptor()
-      }
+      this.setupInterceptor()
+      if (this.token && !this.user) this.decodeToken(this.token)
     },
     decodeToken(token: string) {
       try {
@@ -108,10 +111,14 @@ export const useAuthStore = defineStore('auth', {
       }
     },
     setupInterceptor() {
-      if (!this.token) return
+      if (this.interceptorInstalled) return
+      this.interceptorInstalled = true
 
       AXIOS_INSTANCE.interceptors.request.use((config) => {
-        config.headers.Authorization = `Bearer ${this.token}`
+        const headers = AxiosHeaders.from(config.headers)
+        if (this.token) headers.set('Authorization', `Bearer ${this.token}`)
+        else headers.delete('Authorization')
+        config.headers = headers
         return config
       })
 
@@ -127,4 +134,3 @@ export const useAuthStore = defineStore('auth', {
     },
   },
 })
-

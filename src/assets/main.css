@@ -83,6 +83,11 @@ textarea {
   mix-blend-mode: multiply;
 }
 
+body.no-crt .crt-overlay,
+body.no-crt .scan-line {
+  display: none !important;
+}
+
 @keyframes flicker {
   0% {
     opacity: 0.98;
@@ -134,7 +139,7 @@ textarea {
 
 .scan-line {
   width: 100%;
-  height: 20px;
+  height: 100%;
   background: linear-gradient(to bottom,
       rgba(0, 0, 0, 0),
       rgba(0, 0, 0, 0.05) 50%,
@@ -150,6 +155,11 @@ textarea {
   background-image:
     linear-gradient(to right, rgba(0, 0, 0, 0.05) 1px, transparent 1px),
     linear-gradient(to bottom, rgba(0, 0, 0, 0.05) 1px, transparent 1px);
+}
+
+/* Compatibility with index2.html */
+.hidden-view {
+  display: none !important;
 }
 
 /* Utilities */

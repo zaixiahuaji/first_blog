@@ -5,12 +5,15 @@
  * 个人博客 API 文档
  * OpenAPI spec version: 1.0
  */
-import type { CreatePostDtoCategory } from './createPostDtoCategory';
 
 export interface CreatePostDto {
   /** @maxLength 255 */
   title: string;
-  category: CreatePostDtoCategory;
+  /**
+   * 类别 slug（仅字母/数字/下划线，<=12，强制小写）
+   * @maxLength 12
+   */
+  category: string;
   /** @maxLength 32 */
   date: string;
   /** 列表页短摘要 */

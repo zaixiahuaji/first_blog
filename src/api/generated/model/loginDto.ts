@@ -7,12 +7,10 @@
  */
 
 export interface LoginDto {
-  /** @maxLength 255 */
-  email?: string;
   /**
-   * 用户名或邮箱至少填一个
+   * 用户名
    * @maxLength 12
    */
-  username?: string;
-  password?: string;
+  username: string;
+  password: string;
 }

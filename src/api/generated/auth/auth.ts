@@ -18,7 +18,7 @@ type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
   export const getAuth = () => {
 /**
- * @summary 登录（邮箱或用户名），返回 access_token
+ * @summary 登录（用户名），返回 access_token
  */
 const authControllerLogin = (
     loginDto: LoginDto,
@@ -31,7 +31,7 @@ const authControllerLogin = (
       options);
     }
   /**
- * @summary 注册账号（用户名+邮箱+密码，角色 user）
+ * @summary 注册账号（用户名+邀请码+密码，角色由邀请码决定）
  */
 const authControllerRegister = (
     registerDto: RegisterDto,
